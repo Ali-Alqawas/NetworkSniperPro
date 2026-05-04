@@ -13,11 +13,12 @@ class Sidebar(SmartScrollFrame):
     - عجلة الماوس تعمل تلقائياً
     """
     def __init__(self, master, callbacks=None, **kwargs):
+        import config as _cfg
         super().__init__(
             master,
             width=250,
             corner_radius=16,
-            fg_color=COLORS["bg_sidebar"],
+            fg_color=(_cfg.COLORS_LIGHT["bg_sidebar"], _cfg.COLORS_DARK["bg_sidebar"]),
             scrollbar_button_color=COLORS["bg_input"],
             scrollbar_button_hover_color=COLORS["bg_card_hover"],
             **kwargs
@@ -116,9 +117,10 @@ class Sidebar(SmartScrollFrame):
 
     # ── theme ────────────────────────────────────────────
     def refresh_theme(self):
-        # تحديث الـ _parent_frame الداخلي للـ SmartScrollFrame
-        self._parent_frame.configure(fg_color=COLORS["bg_sidebar"])
-        self._parent_canvas.configure(bg=self._apply_appearance_mode(COLORS["bg_sidebar"]))
+        import config
+        # tuple (light, dark) حتى يختار CTkScrollableFrame الصحيح تلقائياً
+        color_tuple = (config.COLORS_LIGHT["bg_sidebar"], config.COLORS_DARK["bg_sidebar"])
+        self._parent_frame.configure(fg_color=color_tuple)
         self.configure(
             scrollbar_button_color=COLORS["bg_input"],
             scrollbar_button_hover_color=COLORS["bg_card_hover"]

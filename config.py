@@ -47,34 +47,34 @@ COLORS_DARK = {
 
 COLORS_LIGHT = {
     # ── خلفيات ──────────────────────────────────────────
-    "bg_dark":        "#EEE5DA",   # خلفية الشاشة (Light Almond)
-    "bg_sidebar":     "#EBE7E0",   # السايد بار والقوالب (Highlight)
-    "bg_card":        "#EBE7E0",   # بطاقات الأجهزة — أفتح من الخلفية
-    "bg_card_hover":  "#E0DBD3",   # hover
-    "bg_main":        "#EEE5DA",
-    "bg_input":       "#DDD8D0",   # حقول الإدخال
+    "bg_dark":        "#262424",   # خلفية الشاشة — داكنة لإبراز القوالب
+    "bg_sidebar":     "#EEE5DA",   # السايد بار — بيج دافئ
+    "bg_card":        "#EEE5DA",   # بطاقات الأجهزة — بيج دافئ
+    "bg_card_hover":  "#E0D8CE",   # hover أغمق قليلاً
+    "bg_main":        "#262424",
+    "bg_input":       "#DDD5C8",   # حقول الإدخال
     # ── نصوص ────────────────────────────────────────────
-    "text_primary":   "#262424",   # نص رئيسي — تباين عالٍ
-    "text_secondary": "#5a4f47",   # نص ثانوي
-    "text_muted":     "#9a8f87",   # نص خافت
-    # ── Accent موحد (الذهبي المطفأ) ─────────────────────
-    "accent_gold":    "#A88B68",   # نفس الـ accent في الوضعين
-    "hover_gold":     "#917558",
+    "text_primary":   "#1A1818",   # نص رئيسي — شبه أسود، تباين عالٍ
+    "text_secondary": "#3D3530",   # نص ثانوي — بني داكن
+    "text_muted":     "#6B5F57",   # نص خافت
+    # ── Accent موحد ──────────────────────────────────────
+    "accent_gold":    "#8B6F47",   # ذهبي أغمق ليظهر على البيج
+    "hover_gold":     "#7A5F3A",
     # ── ألوان الحالة ─────────────────────────────────────
-    "accent_green":   "#3d7a52",
-    "accent_red":     "#9e3d35",
-    "accent_orange":  "#9a7020",
-    "accent_blue":    "#3d6e96",
-    "accent_purple":  "#7b5ea7",
-    "accent_cyan":    "#3d7e8a",
-    "status_online":  "#3d7a52",
-    "status_offline": "#9e3d35",
-    "status_disconnected": "#9e3d35",
-    "status_warning": "#9a7020",
-    "hover_green":    "#2d6a42",
-    "hover_red":      "#8e2d25",
-    "hover_orange":   "#8a6010",
-    "hover_blue":     "#2d5e86",
+    "accent_green":   "#2D6A3F",
+    "accent_red":     "#8B2E26",
+    "accent_orange":  "#8B6010",
+    "accent_blue":    "#2D5E8A",
+    "accent_purple":  "#5E3D8A",
+    "accent_cyan":    "#2D6E7A",
+    "status_online":  "#2D6A3F",
+    "status_offline": "#8B2E26",
+    "status_disconnected": "#8B2E26",
+    "status_warning": "#8B6010",
+    "hover_green":    "#1D5A2F",
+    "hover_red":      "#7A1E16",
+    "hover_orange":   "#7A5000",
+    "hover_blue":     "#1D4E7A",
 }
 
 # الثيم الافتراضي

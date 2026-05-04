@@ -28,7 +28,6 @@ class NetworkSniperApp(ctk.CTk):
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=0)
         self.grid_rowconfigure(0, weight=1)
-
         # المحركات
         self.scanner = NetworkScanner()
         self.disconnector = Disconnector()
@@ -62,10 +61,11 @@ class NetworkSniperApp(ctk.CTk):
             "export_pdf": self.do_export_pdf,
             "toggle_theme": self.do_toggle_theme,
         })
-        self.sidebar.grid(row=0, column=1, sticky="nsew")
+        # نفس الهوامش من كل الجهات — عائم
+        self.sidebar.grid(row=0, column=1, sticky="nsew", padx=(6, 12), pady=12)
 
     def _build_main_area(self):
-        # الإطار الرئيسي — حواف ناعمة، منفصل بصرياً عن الخلفية
+        # الإطار الرئيسي — نفس الهوامش من كل الجهات، عائم
         self.main_frame = ctk.CTkFrame(
             self, corner_radius=16,
             fg_color=COLORS["bg_sidebar"],

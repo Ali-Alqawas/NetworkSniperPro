@@ -30,9 +30,9 @@ class Sidebar(ctk.CTkFrame):
 
         # ── أدوات الفحص ─────────────────────────────────
         self._section(2, "أدوات الفحص")
-        self.btn_scan    = self._btn(3, "📡  رادار الشبكة",   "accent_gold",   "hover_gold",   "scan")
-        self.btn_stop    = self._btn(4, "🛑  إيقاف الفحص",   "accent_red",    "hover_red",    "stop",    state="disabled")
-        self.btn_monitor = self._btn(5, "👁️  المراقبة الحية", "accent_purple", "accent_purple","monitor")
+        self.btn_scan    = self._btn(3, "📡  رادار الشبكة",   "accent_gold",   "hover_gold",    "scan")
+        self.btn_stop    = self._btn(4, "🛑  إيقاف الفحص",   "accent_red",    "hover_red",     "stop",    state="disabled")
+        self.btn_monitor = self._btn(5, "👁️  المراقبة الحية", "accent_purple", "accent_purple", "monitor")
 
         self._divider(6)
 
@@ -45,17 +45,14 @@ class Sidebar(ctk.CTkFrame):
 
         # ── التصدير ──────────────────────────────────────
         self._section(12, "التصدير")
-        self.btn_csv = self._btn(13, "📊  تصدير CSV", "bg_input", "bg_card_hover", "export_csv",  secondary=True)
-        self.btn_pdf = self._btn(14, "📄  تصدير PDF", "bg_input", "bg_card_hover", "export_pdf",  secondary=True)
+        self.btn_csv = self._btn(13, "📊  تصدير CSV", "bg_input", "bg_card_hover", "export_csv", secondary=True)
+        self.btn_pdf = self._btn(14, "📄  تصدير PDF", "bg_input", "bg_card_hover", "export_pdf", secondary=True)
 
         self._divider(15)
 
-        # ── الثيم ────────────────────────────────────────
-        self.btn_theme = self._btn(16, "☀️  الوضع النهاري", "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
-
-        ctk.CTkLabel(self, text=ar("نسخة خاصة لمهندسي الشبكات"),
-                     text_color=COLORS["text_muted"],
-                     font=ctk.CTkFont(size=10)).grid(row=17, column=0, padx=20, pady=(12, 18), sticky="s")
+        # ── الثيم — قسم مستقل ────────────────────────────
+        self._section(16, "المظهر")
+        self.btn_theme = self._btn(17, "☀️  الوضع النهاري", "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
 
     def _divider(self, row):
         ctk.CTkFrame(self, height=1, fg_color=COLORS["bg_input"]).grid(

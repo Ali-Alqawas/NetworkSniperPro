@@ -228,7 +228,7 @@ class NetworkSniperApp(ctk.CTk):
             return
         for dev in self.devices:
             is_disc = self.disconnector.is_disconnected(dev["ip"])
-            card = DeviceCard(self.devices_list, dev, on_disconnect=self._ask_disconnect, on_reconnect=self._do_reconnect, on_port_scan=self._do_port_scan, on_copy_mac=self._copy_mac, is_disconnected=is_disc)
+            card = DeviceCard(self.devices_list, dev, on_disconnect=self._ask_disconnect, on_reconnect=self._do_reconnect, on_port_scan=self._do_port_scan, on_copy_mac=self._copy_mac, is_disconnected=is_disc, on_rename=self._render_devices)
             card.pack(fill="x", pady=4, padx=5)
 
     # ====== قطع الاتصال ======

@@ -4,8 +4,10 @@
 import subprocess
 import re
 import threading
+import socket
 from utils.logger import log
 from utils.network import validate_network_range, get_gateway_ip, get_local_ip
+from utils.device_names import get_name
 
 try:
     from manuf import manuf as manuf_lib
@@ -52,6 +54,31 @@ class NetworkScanner:
                     return result
             except Exception:
                 pass
+        return "غير معروف"
+
+    def _resolve_hostname(self, ip: str, nmap_hostname: str) -> str:
+        """
+        محاولة الحصول على اسم الجهاز بطبقات متعددة:
+        1. nmap hostname (إذا وجد)
+        2. Reverse DNS عبر socket
+        الأجهزة ذات MAC عشوائي (هواتف) لا تُعلن عن اسمها — تُعاد كـ "غير معروف"
+        """
+        # إذا nmap أعطى اسماً حقيقياً استخدمه مباشرة
+        if nmap_hostname and nmap_hostname not in ("غير معروف", ip, "_gateway"):
+            return nmap_hostname
+        if nmap_hostname == "_gateway":
+            return "Router"
+
+        # Reverse DNS
+        try:
+            name = socket.gethostbyaddr(ip)[0]
+            if name and name != ip:
+                # نظّف الاسم: أزل domain suffix مثل .local أو .home
+                name = name.split(".")[0]
+                return name
+        except Exception:
+            pass
+
         return "غير معروف"
 
     def _run_scan(self, network_range, on_complete, on_error, on_progress):
@@ -108,11 +135,11 @@ class NetworkScanner:
                 ip = ip_m.group(1)
                 # hostname: النص قبل (IP)
                 raw = line.replace("Nmap scan report for ", "").strip()
-                hostname = re.sub(r'\s*\(\d+\.\d+\.\d+\.\d+\)', '', raw).strip()
-                if hostname == ip:
-                    hostname = "غير معروف"
+                nmap_hostname = re.sub(r'\s*\(\d+\.\d+\.\d+\.\d+\)', '', raw).strip()
+                if nmap_hostname == ip:
+                    nmap_hostname = "غير معروف"
                 current = {
-                    "ip": ip, "mac": "", "hostname": hostname, "vendor": "غير معروف",
+                    "ip": ip, "mac": "", "hostname": nmap_hostname, "vendor": "غير معروف",
                     "is_local": ip == local_ip, "is_router": ip == gateway_ip, "status": "online"
                 }
             elif line.startswith("MAC Address:") and current:
@@ -120,7 +147,6 @@ class NetworkScanner:
                 if m:
                     current["mac"] = m.group(1).upper()
                     nmap_vendor = m.group(2).strip()
-                    # إذا nmap يعرف الـ vendor استخدمه، وإلا جرب manuf
                     if nmap_vendor and nmap_vendor.lower() != "unknown":
                         current["vendor"] = nmap_vendor
                     else:
@@ -129,13 +155,27 @@ class NetworkScanner:
         if current.get("ip"):
             devices.append(current)
 
-        # أضف جهازك المحلي إذا لم يظهر (nmap لا يُظهر MAC لجهازك)
+        # أضف جهازك المحلي إذا لم يظهر
         local_ips = {d["ip"] for d in devices}
         if local_ip not in local_ips:
             devices.append({
                 "ip": local_ip, "mac": "N/A (جهازك)", "hostname": "localhost",
                 "vendor": "Local Machine", "is_local": True, "is_router": False, "status": "online"
             })
+
+        # حل الأسماء + تطبيق الأسماء المحفوظة
+        for dev in devices:
+            mac = dev.get("mac", "")
+            # 1. الاسم المحفوظ يدوياً (أعلى أولوية)
+            saved = get_name(mac) if mac and "N/A" not in mac else None
+            if saved:
+                dev["hostname"] = saved
+                dev["name_source"] = "saved"
+            else:
+                # 2. حل الاسم من nmap + DNS
+                resolved = self._resolve_hostname(dev["ip"], dev.get("hostname", "غير معروف"))
+                dev["hostname"] = resolved
+                dev["name_source"] = "resolved" if resolved != "غير معروف" else "unknown"
 
         devices.sort(key=lambda d: (0 if d["is_router"] else (1 if d["is_local"] else 2), d["ip"]))
         return devices

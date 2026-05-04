@@ -5,6 +5,7 @@ from utils.arabic import ar
 from utils.network import get_local_network, get_gateway_ip, is_nmap_installed, is_root
 from utils.exporter import export_csv, export_pdf
 from utils.logger import log
+import utils.settings as settings
 from core.scanner import NetworkScanner
 from core.disconnector import Disconnector
 from core.port_scanner import PortScanner
@@ -21,7 +22,11 @@ from config import COLORS, APP_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT
 class NetworkSniperApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        setup_theme()
+
+        # تحميل الإعدادات المحفوظة
+        self._settings = settings.load()
+        self._apply_saved_theme()
+
         self.title(APP_TITLE)
         self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self.configure(fg_color=COLORS["bg_dark"])
@@ -34,7 +39,7 @@ class NetworkSniperApp(ctk.CTk):
         self.port_scanner = PortScanner()
         self.game_mode = GameMode()
         self.speed_tester = SpeedTester()
-        self.monitor = NetworkMonitor(self.scanner)  # نفس الـ scanner
+        self.monitor = NetworkMonitor(self.scanner)
 
         # البيانات
         self.devices = []
@@ -45,11 +50,28 @@ class NetworkSniperApp(ctk.CTk):
         self._build_sidebar()
         self._build_main_area()
 
+        # تحميل النطاق المحفوظ في حقل الإدخال
+        saved_net = self._settings.get("network_range", "")
+        if saved_net:
+            self.sidebar.set_network_range(saved_net)
+
         # تنظيف عند الإغلاق
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        # إصلاح عجلة الماوس للتمرير في كل CTkScrollableFrame
+        # إصلاح عجلة الماوس
         self._bind_mousewheel(self.devices_list)
+
+    def _apply_saved_theme(self):
+        """تطبيق الثيم والألوان المحفوظة"""
+        import config
+        saved_theme = self._settings.get("theme", "dark")
+        # تطبيق الألوان المخصصة المحفوظة قبل setup_theme
+        for palette_key, config_palette in [("colors_dark", config.COLORS_DARK),
+                                             ("colors_light", config.COLORS_LIGHT)]:
+            saved_colors = self._settings.get(palette_key, {})
+            if saved_colors:
+                config_palette.update(saved_colors)
+        setup_theme(saved_theme)
 
     def _bind_mousewheel(self, scrollable):
         """ربط عجلة الماوس بـ CTkScrollableFrame وكل محتوياته"""
@@ -218,8 +240,13 @@ class NetworkSniperApp(ctk.CTk):
 
         ctk.CTkLabel(self.devices_list, text=ar("🔍 جاري تمشيط الشبكة، يرجى الانتظار..."), font=ctk.CTkFont(size=16), text_color=COLORS["accent_blue"]).pack(pady=100)
 
-        net = get_local_network()
-        self.network_label.configure(text=f"🌐 Network: {net}")
+        # استخدام النطاق المدخل يدوياً أو الاكتشاف التلقائي
+        custom = self.sidebar.get_network_range()
+        from utils.network import validate_network_range
+        net = custom if custom and validate_network_range(custom) else get_local_network()
+        # حفظ النطاق المستخدم
+        settings.set("network_range", net)
+        self.network_label.configure(text=f"🌐 {net}")
         self.scanner.scan(net, on_complete=lambda d: self.after(0, lambda: self._on_scan_complete(d)), on_error=lambda e: self.after(0, lambda: self._on_scan_error(e)), on_progress=lambda m: self.after(0, lambda: self._set_status(m, COLORS["accent_blue"])))
 
     def stop_scan(self):
@@ -439,6 +466,16 @@ class NetworkSniperApp(ctk.CTk):
             else:
                 self._show_welcome()
         log.info(f"تم تطبيق ألوان مخصصة على {target}: bg={bg_hex} card={card_hex}")
+        # حفظ الألوان المخصصة
+        import config
+        settings.set(f"colors_{target}", {
+            "bg_dark": config.COLORS_DARK["bg_dark"] if target == "dark" else config.COLORS_LIGHT["bg_dark"],
+            "bg_main": config.COLORS_DARK["bg_main"] if target == "dark" else config.COLORS_LIGHT["bg_main"],
+            "bg_sidebar": config.COLORS_DARK["bg_sidebar"] if target == "dark" else config.COLORS_LIGHT["bg_sidebar"],
+            "bg_card": config.COLORS_DARK["bg_card"] if target == "dark" else config.COLORS_LIGHT["bg_card"],
+            "bg_card_hover": config.COLORS_DARK["bg_card_hover"] if target == "dark" else config.COLORS_LIGHT["bg_card_hover"],
+            "bg_input": config.COLORS_DARK["bg_input"] if target == "dark" else config.COLORS_LIGHT["bg_input"],
+        })
 
     @staticmethod
     def _darken(hex_color, amount):
@@ -474,6 +511,7 @@ class NetworkSniperApp(ctk.CTk):
         else:
             self._show_welcome()
         log.info(f"تم تغيير الثيم إلى: {new_mode}")
+        settings.set("theme", new_mode)
 
     # ====== التصدير ======
     def do_export_csv(self):

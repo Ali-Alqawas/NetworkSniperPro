@@ -30,33 +30,45 @@ class Sidebar(ctk.CTkFrame):
 
         self._divider(1)
 
-        # ── أدوات الفحص ─────────────────────────────────
-        self._section(2, "أدوات الفحص")
-        self.btn_scan    = self._btn(3, "📡  رادار الشبكة",   "accent_gold",   "hover_gold",    "scan")
-        self.btn_stop    = self._btn(4, "🛑  إيقاف الفحص",   "accent_red",    "hover_red",     "stop",    state="disabled")
-        self.btn_monitor = self._btn(5, "👁️  المراقبة الحية", "accent_purple", "accent_blue", "monitor")
+        # ── نطاق الشبكة ─────────────────────────────────
+        self._section(2, "نطاق الشبكة")
+        net_frame = ctk.CTkFrame(self, fg_color="transparent")
+        net_frame.grid(row=3, column=0, padx=16, pady=(0, 4), sticky="ew")
+        self.network_entry = ctk.CTkEntry(
+            net_frame, height=30, placeholder_text="192.168.1.0/24",
+            font=ctk.CTkFont(size=11), fg_color=COLORS["bg_input"],
+            text_color=COLORS["text_primary"], border_width=0
+        )
+        self.network_entry.pack(fill="x")
+        self.network_entry.bind("<Return>", lambda e: self.callbacks.get("scan", lambda: None)())
 
-        self._divider(6)
+        # ── أدوات الفحص ─────────────────────────────────
+        self._section(4, "أدوات الفحص")
+        self.btn_scan    = self._btn(5, "📡  رادار الشبكة",   "accent_gold",   "hover_gold",    "scan")
+        self.btn_stop    = self._btn(6, "🛑  إيقاف الفحص",   "accent_red",    "hover_red",     "stop",    state="disabled")
+        self.btn_monitor = self._btn(7, "👁️  المراقبة الحية", "accent_purple", "accent_blue",   "monitor")
+
+        self._divider(8)
 
         # ── أدوات التحكم ─────────────────────────────────
-        self._section(7, "أدوات التحكم")
-        self.btn_game  = self._btn(8, "🎮  وضع الألعاب",   "accent_green",  "hover_green",  "game_mode")
-        self.btn_speed = self._btn(9, "⚡  اختبار السرعة", "accent_orange", "hover_orange", "speed_test")
+        self._section(9, "أدوات التحكم")
+        self.btn_game  = self._btn(10, "🎮  وضع الألعاب",   "accent_green",  "hover_green",  "game_mode")
+        self.btn_speed = self._btn(11, "⚡  اختبار السرعة", "accent_orange", "hover_orange", "speed_test")
 
-        self._divider(11)
+        self._divider(12)
 
         # ── التصدير ──────────────────────────────────────
-        self._section(12, "التصدير")
-        self.btn_csv = self._btn(13, "📊  تصدير CSV", "bg_input", "bg_card_hover", "export_csv", secondary=True)
-        self.btn_pdf = self._btn(14, "📄  تصدير PDF", "bg_input", "bg_card_hover", "export_pdf", secondary=True)
+        self._section(13, "التصدير")
+        self.btn_csv = self._btn(14, "📊  تصدير CSV", "bg_input", "bg_card_hover", "export_csv", secondary=True)
+        self.btn_pdf = self._btn(15, "📄  تصدير PDF", "bg_input", "bg_card_hover", "export_pdf", secondary=True)
 
-        self._divider(15)
+        self._divider(16)
 
         # ── المظهر ───────────────────────────────────────
-        self._section(16, "المظهر")
-        self.btn_theme  = self._btn(17, "☀️  الوضع النهاري",  "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
-        self.btn_colors = self._btn(18, "🎨  اختيار الألوان", "bg_input", "bg_card_hover", "color_picker", secondary=True)
-        ctk.CTkFrame(self, height=16, fg_color="transparent").grid(row=19, column=0)
+        self._section(17, "المظهر")
+        self.btn_theme  = self._btn(18, "☀️  الوضع النهاري",  "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
+        self.btn_colors = self._btn(19, "🎨  اختيار الألوان", "bg_input", "bg_card_hover", "color_picker", secondary=True)
+        ctk.CTkFrame(self, height=16, fg_color="transparent").grid(row=20, column=0)
 
     def _divider(self, row):
         ctk.CTkFrame(self, height=1, fg_color=COLORS["bg_input"]).grid(
@@ -87,14 +99,22 @@ class Sidebar(ctk.CTkFrame):
         self.configure(fg_color=COLORS["bg_sidebar"])
         self.lbl_name.configure(text_color=COLORS["text_primary"])
         self.lbl_ver.configure(text_color=COLORS["accent_gold"])
-        # تحديث ألوان الأزرار الثانوية
+        self.network_entry.configure(fg_color=COLORS["bg_input"],
+                                     text_color=COLORS["text_primary"])
         for btn in (self.btn_csv, self.btn_pdf, self.btn_theme, self.btn_colors):
             btn.configure(fg_color=COLORS["bg_input"],
                           hover_color=COLORS["bg_card_hover"],
                           text_color=COLORS["text_secondary"])
-        # تحديث زر رادار الشبكة (accent_gold)
         self.btn_scan.configure(fg_color=COLORS["accent_gold"],
                                 hover_color=COLORS["hover_gold"])
+
+    def get_network_range(self) -> str:
+        """إرجاع النطاق المدخل أو فارغ للاكتشاف التلقائي"""
+        return self.network_entry.get().strip()
+
+    def set_network_range(self, value: str):
+        self.network_entry.delete(0, "end")
+        self.network_entry.insert(0, value)
 
     # ── حالة الأزرار ─────────────────────────────────────
     def set_scanning(self, v):

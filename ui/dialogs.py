@@ -257,6 +257,7 @@ class GameMonitorDialog(ctk.CTkToplevel):
         return None
 
     def _update_loop(self):
+        import time
         while self._running:
             for dev in self._devices:
                 if not self._running:
@@ -287,11 +288,7 @@ class GameMonitorDialog(ctk.CTkToplevel):
                             status_lbl.after(0, lambda s=status_lbl: s.configure(text=ar("غير متاح")))
                         except Exception:
                             pass
-            # انتظر 3 ثوانٍ بين كل دورة
-            for _ in range(30):
-                if not self._running:
-                    break
-                threading.Event().wait(0.1)
+            time.sleep(3)
 
     def _close(self):
         self._running = False

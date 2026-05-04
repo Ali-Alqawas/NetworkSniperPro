@@ -13,7 +13,7 @@ WINDOW_HEIGHT = 750
 SIDEBAR_WIDTH = 240
 
 # ================= الألوان =================
-COLORS = {
+COLORS_DARK = {
     "bg_dark": "#0d1117",
     "bg_sidebar": "#161b22",
     "bg_card": "#1c2333",
@@ -39,10 +39,52 @@ COLORS = {
     "hover_orange": "#bb8009",
 }
 
+COLORS_LIGHT = {
+    "bg_dark": "#f0f2f5",
+    "bg_sidebar": "#ffffff",
+    "bg_card": "#ffffff",
+    "bg_card_hover": "#e8ecf0",
+    "bg_main": "#f0f2f5",
+    "bg_input": "#e1e4e8",
+    "text_primary": "#1a1a2e",
+    "text_secondary": "#444d56",
+    "text_muted": "#959da5",
+    "accent_blue": "#0969da",
+    "accent_green": "#1a7f37",
+    "accent_red": "#cf222e",
+    "accent_orange": "#9a6700",
+    "accent_purple": "#8250df",
+    "accent_cyan": "#0969da",
+    "status_online": "#1a7f37",
+    "status_offline": "#cf222e",
+    "status_disconnected": "#cf222e",
+    "status_warning": "#9a6700",
+    "hover_blue": "#0860ca",
+    "hover_green": "#116329",
+    "hover_red": "#a40e26",
+    "hover_orange": "#7d5400",
+}
+
+# الثيم الافتراضي
+CURRENT_THEME = "dark"
+COLORS = COLORS_DARK.copy()
+
 # ================= إعدادات Nmap =================
 NMAP_TIMEOUT = "15s"
 NMAP_SCAN_ARGS = ["-sn", "-PE", "-PA", "-PP"]
 NMAP_PORT_SCAN_ARGS = ["-sV", "--top-ports", "100"]
+PORT_SCAN_LIST = "21,22,23,25,53,80,110,135,139,143,443,445,1433,3306,3389,5432,5900,6379,8080,8443,8888,27017"
+
+# ================= الثيم =================
+THEMES = ["dark", "light"]
+DEFAULT_THEME = "dark"
+
+# ================= منافذ الفحص =================
+PORT_SCAN_LIST = "21,22,23,25,53,80,110,135,139,143,443,445,1433,3306,3389,5432,5900,6379,8080,8443,8888,27017"
+
+# ================= الثيم =================
+THEMES = ["dark", "light"]
+DEFAULT_THEME = "dark"
 
 # ================= إعدادات الفحص =================
 SCAN_INTERVAL_SECONDS = 30

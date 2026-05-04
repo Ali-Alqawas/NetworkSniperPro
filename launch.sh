@@ -1,4 +1,4 @@
 #!/bin/bash
 # Network Sniper Pro - Launcher
-cd /home/ali403/NetworkSniperPro
-exec sudo /usr/bin/python3 /home/ali403/NetworkSniperPro/main.py
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec sudo python3 "$DIR/main.py"

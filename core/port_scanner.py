@@ -6,7 +6,7 @@ import re
 import threading
 from utils.logger import log
 from utils.network import validate_ip
-from config import DANGEROUS_PORTS
+from config import DANGEROUS_PORTS, PORT_SCAN_LIST
 
 
 class PortScanner:
@@ -15,7 +15,6 @@ class PortScanner:
         self.is_scanning = False
 
     def scan_ports(self, target_ip, on_complete=None, on_error=None):
-        """فحص المنافذ الشائعة لجهاز محدد"""
         if not validate_ip(target_ip):
             if on_error:
                 on_error("عنوان IP غير صالح!")
@@ -29,8 +28,10 @@ class PortScanner:
 
     def _run_port_scan(self, target_ip, on_complete, on_error):
         try:
+            # -Pn: لا تتحقق من حياة الجهاز قبل الفحص (يحل مشكلة "Host seems down")
             self.process = subprocess.Popen(
-                ["sudo", "nmap", "-sV", "-p", "21,22,23,25,53,80,110,135,139,143,443,445,1433,3306,3389,5432,5900,6379,8080,8443,8888,27017", "--host-timeout", "30s", target_ip],
+                ["sudo", "nmap", "-sV", "-Pn", "-p", PORT_SCAN_LIST,
+                 "--host-timeout", "30s", target_ip],
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
             )
             output, _ = self.process.communicate()
@@ -54,13 +55,11 @@ class PortScanner:
     def _parse_port_output(self, output):
         ports = []
         for line in output.split('\n'):
-            # يمسك: 80/tcp open upnp  أو  21/tcp open tcpwrapped
             match = re.match(r'(\d+)/(tcp|udp)\s+(open|open\|filtered)\s+(\S+)\s*(.*)', line.strip())
             if not match:
                 continue
             port_num = int(match.group(1))
             protocol = match.group(2)
-            state = "open"
             service = match.group(4)
             version = match.group(5).strip()
 
@@ -73,7 +72,7 @@ class PortScanner:
                 risk_level = "unknown"
 
             ports.append({
-                "port": port_num, "protocol": protocol, "state": state,
+                "port": port_num, "protocol": protocol, "state": "open",
                 "service": svc_name, "version": version,
                 "risk": risk_desc, "risk_level": risk_level,
             })

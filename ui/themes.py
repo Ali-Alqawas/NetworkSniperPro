@@ -1,16 +1,31 @@
 """
-نظام الألوان والثيمات
+نظام الألوان والثيمات - داكن ونهاري
 """
 import customtkinter as ctk
-from config import COLORS
+import config
 
 
-def setup_theme():
-    """تهيئة الثيم الداكن"""
-    ctk.set_appearance_mode("dark")
+def setup_theme(mode=None):
+    """تهيئة الثيم"""
+    if mode is None:
+        mode = config.CURRENT_THEME
+    if mode == "light":
+        ctk.set_appearance_mode("light")
+        config.COLORS.update(config.COLORS_LIGHT)
+        config.CURRENT_THEME = "light"
+    else:
+        ctk.set_appearance_mode("dark")
+        config.COLORS.update(config.COLORS_DARK)
+        config.CURRENT_THEME = "dark"
     ctk.set_default_color_theme("blue")
 
 
+def toggle_theme():
+    """تبديل بين الثيم الداكن والنهاري"""
+    new_mode = "light" if config.CURRENT_THEME == "dark" else "dark"
+    setup_theme(new_mode)
+    return new_mode
+
+
 def get_color(name):
-    """الحصول على لون من الإعدادات"""
-    return COLORS.get(name, "#ffffff")
+    return config.COLORS.get(name, "#ffffff")

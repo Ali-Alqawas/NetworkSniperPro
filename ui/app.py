@@ -11,7 +11,7 @@ from core.port_scanner import PortScanner
 from core.game_mode import GameMode
 from core.speed_test import SpeedTester
 from core.monitor import NetworkMonitor
-from ui.themes import setup_theme
+from ui.themes import setup_theme, toggle_theme
 from ui.sidebar import Sidebar
 from ui.device_card import DeviceCard
 from ui.dialogs import DisconnectDialog, PortResultDialog, SpeedResultDialog, AlertDialog, GameModeDialog, GameMonitorDialog
@@ -60,6 +60,7 @@ class NetworkSniperApp(ctk.CTk):
             "speed_test": self.start_speed_test,
             "export_csv": self.do_export_csv,
             "export_pdf": self.do_export_pdf,
+            "toggle_theme": self.do_toggle_theme,
         })
         self.sidebar.grid(row=0, column=1, sticky="nsew")
 
@@ -338,6 +339,22 @@ class NetworkSniperApp(ctk.CTk):
         now = datetime.now().strftime("%H:%M:%S")
         self.time_label.configure(text=now)
         self.device_count.configure(text=f"{len(devs)} " + ar("جهاز"))
+
+    # ====== تبديل الثيم ======
+    def do_toggle_theme(self):
+        new_mode = toggle_theme()
+        self.sidebar.set_theme(new_mode)
+        # إعادة تطبيق الألوان على النافذة الرئيسية
+        from config import COLORS
+        self.configure(fg_color=COLORS["bg_dark"])
+        self.main_frame.configure(fg_color=COLORS["bg_sidebar"])
+        self.devices_list.configure(fg_color=COLORS["bg_dark"])
+        self.statusbar.configure(fg_color=COLORS["bg_card"])
+        self.sidebar.configure(fg_color=COLORS["bg_sidebar"])
+        # إعادة رسم الأجهزة لتطبيق الألوان الجديدة
+        if self.devices:
+            self._render_devices()
+        log.info(f"تم تغيير الثيم إلى: {new_mode}")
 
     # ====== التصدير ======
     def do_export_csv(self):

@@ -2,6 +2,7 @@
 import customtkinter as ctk
 from utils.arabic import ar
 from config import COLORS
+from ui.smart_scroll import SmartScrollFrame
 
 
 class Sidebar(ctk.CTkFrame):
@@ -9,15 +10,15 @@ class Sidebar(ctk.CTkFrame):
         super().__init__(master, width=250, corner_radius=16,
                          fg_color=COLORS["bg_sidebar"], **kwargs)
         self.callbacks = callbacks or {}
-        # الـ sidebar نفسه يستخدم grid لوضع الـ scrollable frame
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self._build()
 
     def _build(self):
-        # CTkScrollableFrame يحتوي كل المحتوى — يمنع اختفاء أي زر عند تصغير النافذة
-        self._scroll = ctk.CTkScrollableFrame(
+        # SmartScrollFrame بنفس corner_radius وبدون border
+        self._scroll = SmartScrollFrame(
             self, fg_color="transparent",
+            corner_radius=16,
             scrollbar_button_color=COLORS["bg_input"],
             scrollbar_button_hover_color=COLORS["bg_card_hover"]
         )

@@ -5,6 +5,7 @@ import threading
 import re
 from utils.arabic import ar
 from config import COLORS, DISCONNECT_DURATIONS, PALETTE_BG, PALETTE_CARD
+from ui.smart_scroll import SmartScrollFrame
 
 
 def _safe_grab(dialog):
@@ -15,7 +16,6 @@ def _safe_grab(dialog):
         pass
 
 
-def _bind_scroll(scrollable):
     """ربط عجلة الماوس بـ CTkScrollableFrame على Linux/Windows/Mac"""
     def _wheel(e):
         if e.num == 4:
@@ -87,9 +87,8 @@ class PortResultDialog(ctk.CTkToplevel):
         ctk.CTkLabel(self, text=ar(summary), font=ctk.CTkFont(size=13),
                      text_color=COLORS["text_secondary"]).pack(pady=(0, 10))
 
-        scroll = ctk.CTkScrollableFrame(self, fg_color=COLORS["bg_sidebar"])
+        scroll = SmartScrollFrame(self, fg_color=COLORS["bg_sidebar"])
         scroll.pack(fill="both", expand=True, padx=20, pady=5)
-        _bind_scroll(scroll)
 
         if not ports:
             ctk.CTkLabel(scroll, text=ar("لم تُستلم أي نتائج — تأكد من صلاحيات sudo"),
@@ -184,9 +183,8 @@ class GameModeDialog(ctk.CTkToplevel):
                      text_color=COLORS["accent_green"]).pack()
 
         # Scrollable body — يحتوي كل المحتوى
-        body = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        body = SmartScrollFrame(self, fg_color="transparent")
         body.grid(row=1, column=0, sticky="nsew", padx=4, pady=4)
-        _bind_scroll(body)
 
         # اختيار الجهاز
         ctk.CTkLabel(body, text=ar("الجهاز ذو الأولوية:"),
@@ -359,9 +357,8 @@ class GameMonitorDialog(ctk.CTkToplevel):
                          text_color=COLORS["text_muted"]).pack(side="left", padx=6, pady=5)
 
         self._rows = {}
-        scroll = ctk.CTkScrollableFrame(self, fg_color=COLORS["bg_sidebar"], corner_radius=8, height=200)
+        scroll = SmartScrollFrame(self, fg_color=COLORS["bg_sidebar"], corner_radius=8, height=200)
         scroll.pack(fill="x", padx=20)
-        _bind_scroll(scroll)
 
         for dev in self._devices:
             ip = dev["ip"]
@@ -555,22 +552,20 @@ class ColorPickerDialog(ctk.CTkToplevel):
         ctk.CTkLabel(content, text=ar("🖥️  لون الخلفية"),
                      font=ctk.CTkFont(size=13, weight="bold"),
                      text_color=COLORS["text_primary"]).grid(row=0, column=0, pady=(0,6))
-        bg_scroll = ctk.CTkScrollableFrame(content, fg_color=COLORS["bg_sidebar"],
+        bg_scroll = SmartScrollFrame(content, fg_color=COLORS["bg_sidebar"],
                                            corner_radius=10)
         bg_scroll.grid(row=1, column=0, sticky="nsew", padx=(0,6))
         for name, hex_color, emoji in PALETTE_BG:
             self._color_row(bg_scroll, name, hex_color, emoji, self._sel_bg)
-        _bind_scroll(bg_scroll)
 
         ctk.CTkLabel(content, text=ar("🗂️  لون القوالب"),
                      font=ctk.CTkFont(size=13, weight="bold"),
                      text_color=COLORS["text_primary"]).grid(row=0, column=1, pady=(0,6))
-        card_scroll = ctk.CTkScrollableFrame(content, fg_color=COLORS["bg_sidebar"],
+        card_scroll = SmartScrollFrame(content, fg_color=COLORS["bg_sidebar"],
                                              corner_radius=10)
         card_scroll.grid(row=1, column=1, sticky="nsew", padx=(6,0))
         for name, hex_color, emoji in PALETTE_CARD:
             self._color_row(card_scroll, name, hex_color, emoji, self._sel_card)
-        _bind_scroll(card_scroll)
 
         self.after(100, lambda: _safe_grab(self))
 

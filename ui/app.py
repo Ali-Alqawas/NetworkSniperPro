@@ -16,6 +16,7 @@ from core.monitor import NetworkMonitor
 from ui.themes import setup_theme, toggle_theme
 from ui.sidebar import Sidebar
 from ui.device_card import DeviceCard
+from ui.smart_scroll import SmartScrollFrame
 from ui.dialogs import DisconnectDialog, PortResultDialog, SpeedResultDialog, AlertDialog, GameModeDialog, GameMonitorDialog, ColorPickerDialog
 from config import COLORS, APP_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT
 
@@ -60,50 +61,18 @@ class NetworkSniperApp(ctk.CTk):
         # تنظيف عند الإغلاق
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        # إصلاح عجلة الماوس
-        self._bind_mousewheel(self.devices_list)
-
         log.info("تم تشغيل التطبيق")
 
     def _apply_saved_theme(self):
         """تطبيق الثيم والألوان المحفوظة"""
         import config
         saved_theme = self._settings.get("theme", "dark")
-        # تطبيق الألوان المخصصة المحفوظة قبل setup_theme
         for palette_key, config_palette in [("colors_dark", config.COLORS_DARK),
                                              ("colors_light", config.COLORS_LIGHT)]:
             saved_colors = self._settings.get(palette_key, {})
             if saved_colors:
                 config_palette.update(saved_colors)
         setup_theme(saved_theme)
-
-    def _bind_mousewheel(self, scrollable):
-        """ربط عجلة الماوس بـ CTkScrollableFrame وكل محتوياته"""
-        def _on_wheel(event):
-            # Linux يستخدم Button-4/5، Windows/Mac يستخدم MouseWheel
-            if event.num == 4:
-                scrollable._parent_canvas.yview_scroll(-1, "units")
-            elif event.num == 5:
-                scrollable._parent_canvas.yview_scroll(1, "units")
-            else:
-                scrollable._parent_canvas.yview_scroll(int(-event.delta / 120), "units")
-
-        for seq in ("<Button-4>", "<Button-5>", "<MouseWheel>"):
-            scrollable.bind(seq, _on_wheel, add="+")
-            scrollable._parent_canvas.bind(seq, _on_wheel, add="+")
-            # ربط على كل widget داخل الـ frame ديناميكياً
-            scrollable._scrollbar.bind(seq, _on_wheel, add="+")
-
-        # ربط على الأجهزة الجديدة عند إضافتها
-        scrollable.bind("<Enter>", lambda e: self._rebind_children(scrollable, _on_wheel))
-
-    def _rebind_children(self, scrollable, handler):
-        for child in scrollable.winfo_children():
-            for seq in ("<Button-4>", "<Button-5>", "<MouseWheel>"):
-                try:
-                    child.bind(seq, handler, add="+")
-                except Exception:
-                    pass
 
     def _build_sidebar(self):
         self.sidebar = Sidebar(self, callbacks={
@@ -176,8 +145,8 @@ class NetworkSniperApp(ctk.CTk):
         self.progress.pack(fill="x", padx=20, pady=(0, 6))
         self.progress.set(0)
 
-        # قائمة الأجهزة — حواف ناعمة، خلفية منفصلة
-        self.devices_list = ctk.CTkScrollableFrame(
+        # قائمة الأجهزة
+        self.devices_list = SmartScrollFrame(
             self.main_frame,
             fg_color=COLORS["bg_dark"],
             corner_radius=12

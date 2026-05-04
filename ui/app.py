@@ -3,9 +3,10 @@ import customtkinter as ctk
 from datetime import datetime
 from utils.arabic import ar
 from utils.network import get_local_network, get_gateway_ip, is_nmap_installed, is_root
-from utils.exporter import export_csv, export_pdf
+from utils.exporter import export_csv, export_pdf, export_json
 from utils.logger import log
 import utils.settings as settings
+import utils.history as history
 from core.scanner import NetworkScanner
 from core.disconnector import Disconnector
 from core.port_scanner import PortScanner
@@ -111,6 +112,7 @@ class NetworkSniperApp(ctk.CTk):
             "game_mode": self.toggle_game_mode,
             "speed_test": self.start_speed_test,
             "export_csv": self.do_export_csv,
+            "export_json": self.do_export_json,
             "export_pdf": self.do_export_pdf,
             "toggle_theme": self.do_toggle_theme,
             "color_picker": self.open_color_picker,
@@ -263,6 +265,9 @@ class NetworkSniperApp(ctk.CTk):
         self.progress.set(0)
         self.sidebar.set_scanning(False)
         self.devices = devices
+        # حفظ في قاعدة البيانات
+        for dev in devices:
+            history.upsert_device(dev)
         self._render_devices()
         now = datetime.now().strftime("%H:%M:%S")
         self._set_status(f"آخر فحص: {now} — {len(devices)} جهاز", COLORS["accent_green"])
@@ -423,11 +428,24 @@ class NetworkSniperApp(ctk.CTk):
     def _on_new_device(self, dev):
         ip = dev.get("ip", "?")
         vendor = dev.get("vendor", "?")
+        hostname = dev.get("hostname", "")
+        history.upsert_device(dev)
+        history.log_event(dev.get("mac",""), ip, "connected")
         self._set_status(f"🆕 جهاز جديد: {ip} ({vendor})", COLORS["accent_cyan"])
+        # إشعار نظام
+        name = hostname if hostname and hostname != "غير معروف" else vendor
+        try:
+            import subprocess as _sp
+            _sp.Popen(["notify-send", "-i", "network-wireless",
+                       "Network Sniper Pro", f"جهاز جديد: {ip}\n{name}"],
+                      stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+        except Exception:
+            pass
         AlertDialog(self, "New Device", f"🆕 {ar('جهاز جديد اتصل بالشبكة')}\nIP: {ip}\nVendor: {vendor}", "new_device")
 
     def _on_device_left(self, dev):
         ip = dev.get("ip", "?")
+        history.log_event(dev.get("mac",""), ip, "disconnected")
         self._set_status(f"📴 جهاز غادر: {ip}", COLORS["accent_orange"])
 
     def _on_monitor_update(self, devs):
@@ -522,6 +540,17 @@ class NetworkSniperApp(ctk.CTk):
         if path:
             self._set_status(f"تم التصدير: {path}", COLORS["accent_green"])
             AlertDialog(self, "Export", f"{ar('تم تصدير CSV بنجاح')}\n{path}", "success")
+        else:
+            AlertDialog(self, "Error", ar("فشل التصدير"), "error")
+
+    def do_export_json(self):
+        if not self.devices:
+            AlertDialog(self, "Export", ar("لا توجد بيانات للتصدير. قم بالفحص أولاً."), "warning")
+            return
+        path = export_json(self.devices, self.port_results if self.port_results else None)
+        if path:
+            self._set_status(f"تم التصدير: {path}", COLORS["accent_green"])
+            AlertDialog(self, "Export", f"{ar('تم تصدير JSON بنجاح')}\n{path}", "success")
         else:
             AlertDialog(self, "Error", ar("فشل التصدير"), "error")
 

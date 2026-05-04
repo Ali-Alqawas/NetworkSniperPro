@@ -59,16 +59,17 @@ class Sidebar(ctk.CTkFrame):
 
         # ── التصدير ──────────────────────────────────────
         self._section(13, "التصدير")
-        self.btn_csv = self._btn(14, "📊  تصدير CSV", "bg_input", "bg_card_hover", "export_csv", secondary=True)
-        self.btn_pdf = self._btn(15, "📄  تصدير PDF", "bg_input", "bg_card_hover", "export_pdf", secondary=True)
+        self.btn_csv  = self._btn(14, "📊  تصدير CSV",  "bg_input", "bg_card_hover", "export_csv",  secondary=True)
+        self.btn_json = self._btn(15, "🗂️  تصدير JSON", "bg_input", "bg_card_hover", "export_json", secondary=True)
+        self.btn_pdf  = self._btn(16, "📄  تصدير PDF",  "bg_input", "bg_card_hover", "export_pdf",  secondary=True)
 
-        self._divider(16)
+        self._divider(17)
 
         # ── المظهر ───────────────────────────────────────
-        self._section(17, "المظهر")
-        self.btn_theme  = self._btn(18, "☀️  الوضع النهاري",  "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
-        self.btn_colors = self._btn(19, "🎨  اختيار الألوان", "bg_input", "bg_card_hover", "color_picker", secondary=True)
-        ctk.CTkFrame(self, height=16, fg_color="transparent").grid(row=20, column=0)
+        self._section(18, "المظهر")
+        self.btn_theme  = self._btn(19, "☀️  الوضع النهاري",  "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
+        self.btn_colors = self._btn(20, "🎨  اختيار الألوان", "bg_input", "bg_card_hover", "color_picker", secondary=True)
+        ctk.CTkFrame(self, height=16, fg_color="transparent").grid(row=21, column=0)
 
     def _divider(self, row):
         ctk.CTkFrame(self, height=1, fg_color=COLORS["bg_input"]).grid(
@@ -101,7 +102,7 @@ class Sidebar(ctk.CTkFrame):
         self.lbl_ver.configure(text_color=COLORS["accent_gold"])
         self.network_entry.configure(fg_color=COLORS["bg_input"],
                                      text_color=COLORS["text_primary"])
-        for btn in (self.btn_csv, self.btn_pdf, self.btn_theme, self.btn_colors):
+        for btn in (self.btn_csv, self.btn_json, self.btn_pdf, self.btn_theme, self.btn_colors):
             btn.configure(fg_color=COLORS["bg_input"],
                           hover_color=COLORS["bg_card_hover"],
                           text_color=COLORS["text_secondary"])

@@ -15,6 +15,21 @@ def _safe_grab(dialog):
         pass
 
 
+def _bind_scroll(scrollable):
+    """ربط عجلة الماوس بـ CTkScrollableFrame على Linux/Windows/Mac"""
+    def _wheel(e):
+        if e.num == 4:
+            scrollable._parent_canvas.yview_scroll(-1, "units")
+        elif e.num == 5:
+            scrollable._parent_canvas.yview_scroll(1, "units")
+        else:
+            scrollable._parent_canvas.yview_scroll(int(-e.delta / 120), "units")
+    for seq in ("<Button-4>", "<Button-5>", "<MouseWheel>"):
+        scrollable.bind(seq, _wheel, add="+")
+        scrollable._parent_canvas.bind(seq, _wheel, add="+")
+        scrollable._scrollbar.bind(seq, _wheel, add="+")
+
+
 class DisconnectDialog(ctk.CTkToplevel):
     def __init__(self, master, device_info, on_confirm=None):
         super().__init__(master)
@@ -74,6 +89,7 @@ class PortResultDialog(ctk.CTkToplevel):
 
         scroll = ctk.CTkScrollableFrame(self, fg_color=COLORS["bg_sidebar"])
         scroll.pack(fill="both", expand=True, padx=20, pady=5)
+        _bind_scroll(scroll)
 
         if not ports:
             ctk.CTkLabel(scroll, text=ar("لم تُستلم أي نتائج — تأكد من صلاحيات sudo"),
@@ -149,9 +165,10 @@ class GameModeDialog(ctk.CTkToplevel):
     def __init__(self, master, devices, on_confirm=None):
         super().__init__(master)
         self.title("Game Mode")
-        self.geometry("460x540")
+        self.geometry("460x600")
+        self.minsize(460, 560)
         self.configure(fg_color=COLORS["bg_dark"])
-        self.resizable(False, False)
+        self.resizable(True, True)
         self.on_confirm = on_confirm
 
         ctk.CTkLabel(self, text="🎮", font=ctk.CTkFont(size=36)).pack(pady=(14, 2))
@@ -164,8 +181,7 @@ class GameModeDialog(ctk.CTkToplevel):
 
         scroll = ctk.CTkScrollableFrame(self, fg_color=COLORS["bg_sidebar"], height=130)
         scroll.pack(fill="x", padx=20, pady=(0, 8))
-
-        self.selected_ip = ctk.StringVar(value="")
+        _bind_scroll(scroll)
         local = next((d for d in devices if d.get("is_local")), None)
         for dev in devices:
             ip = dev["ip"]
@@ -333,6 +349,7 @@ class GameMonitorDialog(ctk.CTkToplevel):
         self._rows = {}
         scroll = ctk.CTkScrollableFrame(self, fg_color=COLORS["bg_sidebar"], corner_radius=8, height=200)
         scroll.pack(fill="x", padx=20)
+        _bind_scroll(scroll)
 
         for dev in self._devices:
             ip = dev["ip"]
@@ -531,6 +548,7 @@ class ColorPickerDialog(ctk.CTkToplevel):
         bg_scroll.grid(row=1, column=0, sticky="nsew", padx=(0,6))
         for name, hex_color, emoji in PALETTE_BG:
             self._color_row(bg_scroll, name, hex_color, emoji, self._sel_bg)
+        _bind_scroll(bg_scroll)
 
         ctk.CTkLabel(content, text=ar("🗂️  لون القوالب"),
                      font=ctk.CTkFont(size=13, weight="bold"),
@@ -540,6 +558,7 @@ class ColorPickerDialog(ctk.CTkToplevel):
         card_scroll.grid(row=1, column=1, sticky="nsew", padx=(6,0))
         for name, hex_color, emoji in PALETTE_CARD:
             self._color_row(card_scroll, name, hex_color, emoji, self._sel_card)
+        _bind_scroll(card_scroll)
 
         self.after(100, lambda: _safe_grab(self))
 

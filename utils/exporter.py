@@ -1,7 +1,8 @@
 """
-أداة تصدير النتائج إلى CSV و PDF مع دعم كامل للعربية
+أداة تصدير النتائج إلى CSV و PDF و JSON مع دعم كامل للعربية
 """
 import csv
+import json
 import os
 from datetime import datetime
 from utils.logger import log
@@ -61,6 +62,26 @@ def export_csv(devices, filepath=None):
         return filepath
     except Exception as e:
         log.error(f"فشل تصدير CSV: {e}")
+        return None
+
+
+def export_json(devices, port_results=None, filepath=None):
+    if not filepath:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filepath = os.path.expanduser(f"~/NetworkSniperPro_Report_{timestamp}.json")
+    try:
+        data = {
+            "generated": datetime.now().isoformat(),
+            "devices": devices,
+        }
+        if port_results:
+            data["port_results"] = port_results
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        log.info(f"تم تصدير JSON: {filepath}")
+        return filepath
+    except Exception as e:
+        log.error(f"فشل تصدير JSON: {e}")
         return None
 
 

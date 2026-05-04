@@ -48,6 +48,37 @@ class NetworkSniperApp(ctk.CTk):
         # تنظيف عند الإغلاق
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
+        # إصلاح عجلة الماوس للتمرير في كل CTkScrollableFrame
+        self._bind_mousewheel(self.devices_list)
+
+    def _bind_mousewheel(self, scrollable):
+        """ربط عجلة الماوس بـ CTkScrollableFrame وكل محتوياته"""
+        def _on_wheel(event):
+            # Linux يستخدم Button-4/5، Windows/Mac يستخدم MouseWheel
+            if event.num == 4:
+                scrollable._parent_canvas.yview_scroll(-1, "units")
+            elif event.num == 5:
+                scrollable._parent_canvas.yview_scroll(1, "units")
+            else:
+                scrollable._parent_canvas.yview_scroll(int(-event.delta / 120), "units")
+
+        for seq in ("<Button-4>", "<Button-5>", "<MouseWheel>"):
+            scrollable.bind(seq, _on_wheel, add="+")
+            scrollable._parent_canvas.bind(seq, _on_wheel, add="+")
+            # ربط على كل widget داخل الـ frame ديناميكياً
+            scrollable._scrollbar.bind(seq, _on_wheel, add="+")
+
+        # ربط على الأجهزة الجديدة عند إضافتها
+        scrollable.bind("<Enter>", lambda e: self._rebind_children(scrollable, _on_wheel))
+
+    def _rebind_children(self, scrollable, handler):
+        for child in scrollable.winfo_children():
+            for seq in ("<Button-4>", "<Button-5>", "<MouseWheel>"):
+                try:
+                    child.bind(seq, handler, add="+")
+                except Exception:
+                    pass
+
         log.info("تم تشغيل التطبيق")
 
     def _build_sidebar(self):
@@ -292,25 +323,23 @@ class NetworkSniperApp(ctk.CTk):
                 self.after(0, lambda: self._game_status(active, msg))
             self.game_mode.deactivate(on_status=on_status)
         else:
-            # إذا لا توجد أجهزة، استخدم جهازك مباشرة
             if not self.devices:
                 from utils.network import get_local_ip
-                self._start_game_mode(get_local_ip())
+                self._start_game_mode(get_local_ip(), 512, 256)
             else:
                 GameModeDialog(self, self.devices, on_confirm=self._start_game_mode)
 
-    def _start_game_mode(self, priority_ip):
+    def _start_game_mode(self, priority_ip, dl_kbit=512, ul_kbit=256):
         def on_status(active, msg):
-            self.after(0, lambda: self._game_status(active, msg, priority_ip))
-        self.game_mode.activate(priority_ip, on_status=on_status)
+            self.after(0, lambda: self._game_status(active, msg, priority_ip, dl_kbit, ul_kbit))
+        self.game_mode.activate(priority_ip, on_status=on_status, dl_kbit=dl_kbit, ul_kbit=ul_kbit)
 
-    def _game_status(self, active, msg, priority_ip=None):
+    def _game_status(self, active, msg, priority_ip=None, dl_kbit=512, ul_kbit=256):
         self.sidebar.set_game_mode(active)
         color = COLORS["accent_green"] if active else COLORS["text_muted"]
         self._set_status(msg, color)
         if active and priority_ip and self.devices:
-            # افتح نافذة المعلومات الحية مباشرة
-            GameMonitorDialog(self, priority_ip, self.devices)
+            GameMonitorDialog(self, priority_ip, self.devices, dl_kbit, ul_kbit)
         elif not active:
             AlertDialog(self, "Game Mode", msg, "info")
 

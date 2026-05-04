@@ -145,71 +145,158 @@ class SpeedResultDialog(ctk.CTkToplevel):
 
 
 class GameModeDialog(ctk.CTkToplevel):
-    """نافذة اختيار الجهاز ذو الأولوية في وضع الألعاب"""
+    """نافذة اختيار الجهاز + تحديد السرعة ديناميكياً"""
     def __init__(self, master, devices, on_confirm=None):
         super().__init__(master)
         self.title("Game Mode")
-        self.geometry("440x460")
+        self.geometry("460x540")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
         self.on_confirm = on_confirm
 
-        ctk.CTkLabel(self, text="🎮", font=ctk.CTkFont(size=40)).pack(pady=(15,3))
-        ctk.CTkLabel(self, text=ar("اختر الجهاز ذو الأولوية"), font=ctk.CTkFont(size=18, weight="bold"), text_color=COLORS["accent_green"]).pack(pady=3)
-        ctk.CTkLabel(self, text=ar("سيحصل هذا الجهاز على كامل السرعة\nبينما يُحدَّد الباقون بـ 512kbit"), font=ctk.CTkFont(size=12), text_color=COLORS["text_secondary"]).pack(pady=(0,8))
+        ctk.CTkLabel(self, text="🎮", font=ctk.CTkFont(size=36)).pack(pady=(14, 2))
+        ctk.CTkLabel(self, text=ar("وضع الألعاب"), font=ctk.CTkFont(size=18, weight="bold"),
+                     text_color=COLORS["accent_green"]).pack()
 
-        scroll = ctk.CTkScrollableFrame(self, fg_color=COLORS["bg_sidebar"], height=200)
-        scroll.pack(fill="x", padx=20, pady=5)
+        # ── اختيار الجهاز ──────────────────────────────
+        ctk.CTkLabel(self, text=ar("الجهاز ذو الأولوية:"),
+                     font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]).pack(anchor="w", padx=24, pady=(10, 2))
+
+        scroll = ctk.CTkScrollableFrame(self, fg_color=COLORS["bg_sidebar"], height=130)
+        scroll.pack(fill="x", padx=20, pady=(0, 8))
 
         self.selected_ip = ctk.StringVar(value="")
+        local = next((d for d in devices if d.get("is_local")), None)
         for dev in devices:
             ip = dev["ip"]
-            vendor = dev.get("vendor", "غير معروف")
             hostname = dev.get("hostname", "")
-            label = f"{ip}  •  {vendor}"
-            if hostname and hostname != "غير معروف":
-                label += f"  ({hostname})"
+            # عرض IP + اسم فقط (بدون MAC أو vendor)
+            label = ip
+            if hostname and hostname not in ("غير معروف", "localhost"):
+                label += f"  —  {hostname}"
             if dev.get("is_local"):
                 label += ar("  ← جهازك")
             ctk.CTkRadioButton(scroll, text=label, variable=self.selected_ip, value=ip,
-                               font=ctk.CTkFont(size=12), text_color=COLORS["text_primary"]).pack(anchor="w", padx=10, pady=5)
+                               font=ctk.CTkFont(size=12),
+                               text_color=COLORS["text_primary"]).pack(anchor="w", padx=10, pady=4)
 
-        # تحديد جهازك افتراضياً
-        local = next((d for d in devices if d.get("is_local")), None)
         if local:
             self.selected_ip.set(local["ip"])
         elif devices:
             self.selected_ip.set(devices[0]["ip"])
 
-        # معلومة
-        ctk.CTkLabel(self, text=ar("💡 اختر جهازك للألعاب، أو أي جهاز تريد إعطاءه الأولوية"),
-                     font=ctk.CTkFont(size=11), text_color=COLORS["text_muted"], wraplength=380).pack(pady=(8,5))
+        # ── تحديد السرعة ───────────────────────────────
+        sep = ctk.CTkFrame(self, height=1, fg_color=COLORS["bg_input"])
+        sep.pack(fill="x", padx=20, pady=(4, 10))
 
+        ctk.CTkLabel(self, text=ar("حد سرعة الآخرين (بناءً على سرعة خطك الفعلية):"),
+                     font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]).pack(anchor="w", padx=24)
+
+        # حقل سرعة التحميل الفعلية
+        dl_frame = ctk.CTkFrame(self, fg_color="transparent")
+        dl_frame.pack(fill="x", padx=24, pady=(6, 2))
+        ctk.CTkLabel(dl_frame, text=ar("⬇️ سرعة تحميل خطك (Mbps):"),
+                     font=ctk.CTkFont(size=12), text_color=COLORS["text_secondary"],
+                     width=200, anchor="w").pack(side="left")
+        self._dl_var = ctk.StringVar(value="2.96")
+        ctk.CTkEntry(dl_frame, textvariable=self._dl_var, width=80, height=30,
+                     fg_color=COLORS["bg_input"], text_color=COLORS["text_primary"],
+                     font=ctk.CTkFont(size=12)).pack(side="left", padx=8)
+
+        # حقل سرعة الرفع الفعلية
+        ul_frame = ctk.CTkFrame(self, fg_color="transparent")
+        ul_frame.pack(fill="x", padx=24, pady=(2, 8))
+        ctk.CTkLabel(ul_frame, text=ar("⬆️ سرعة رفع خطك (Mbps):"),
+                     font=ctk.CTkFont(size=12), text_color=COLORS["text_secondary"],
+                     width=200, anchor="w").pack(side="left")
+        self._ul_var = ctk.StringVar(value="1.09")
+        ctk.CTkEntry(ul_frame, textvariable=self._ul_var, width=80, height=30,
+                     fg_color=COLORS["bg_input"], text_color=COLORS["text_primary"],
+                     font=ctk.CTkFont(size=12)).pack(side="left", padx=8)
+
+        # Slider للحد المخصص للآخرين (% من السرعة الكلية)
+        ctk.CTkLabel(self, text=ar("نسبة ما يحصل عليه الآخرون:"),
+                     font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]).pack(anchor="w", padx=24)
+
+        slider_frame = ctk.CTkFrame(self, fg_color="transparent")
+        slider_frame.pack(fill="x", padx=24, pady=(4, 2))
+
+        self._pct_var = ctk.IntVar(value=20)
+        self._pct_lbl = ctk.CTkLabel(slider_frame, text="20%",
+                                      font=ctk.CTkFont(size=13, weight="bold"),
+                                      text_color=COLORS["accent_orange"], width=45)
+        self._pct_lbl.pack(side="right")
+
+        ctk.CTkSlider(slider_frame, from_=5, to=50, number_of_steps=45,
+                      variable=self._pct_var,
+                      button_color=COLORS["accent_orange"],
+                      progress_color=COLORS["accent_orange"],
+                      command=self._on_slider).pack(side="left", fill="x", expand=True)
+
+        self._calc_lbl = ctk.CTkLabel(self, text="",
+                                       font=ctk.CTkFont(size=11),
+                                       text_color=COLORS["text_muted"])
+        self._calc_lbl.pack(pady=(2, 4))
+        self._update_calc()
+
+        # تحديث الحساب عند تغيير السرعة
+        self._dl_var.trace_add("write", lambda *_: self._update_calc())
+        self._ul_var.trace_add("write", lambda *_: self._update_calc())
+
+        # ── أزرار ──────────────────────────────────────
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.pack(pady=12)
-        ctk.CTkButton(btn_frame, text=ar("إلغاء"), width=130, height=36,
+        btn_frame.pack(pady=10)
+        ctk.CTkButton(btn_frame, text=ar("إلغاء"), width=120, height=34,
                       fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"],
-                      command=self.destroy).pack(side="left", padx=10)
-        ctk.CTkButton(btn_frame, text=ar("🎮 تفعيل وضع الألعاب"), width=180, height=36,
+                      command=self.destroy).pack(side="left", padx=8)
+        ctk.CTkButton(btn_frame, text=ar("🎮 تفعيل"), width=160, height=34,
                       fg_color=COLORS["accent_green"], hover_color=COLORS["hover_green"],
                       font=ctk.CTkFont(size=13, weight="bold"),
-                      command=self._confirm).pack(side="left", padx=10)
+                      command=self._confirm).pack(side="left", padx=8)
 
         self.after(100, lambda: _safe_grab(self))
 
+    def _on_slider(self, val):
+        self._pct_lbl.configure(text=f"{int(val)}%")
+        self._update_calc()
+
+    def _update_calc(self):
+        try:
+            dl = float(self._dl_var.get())
+            ul = float(self._ul_var.get())
+            pct = self._pct_var.get() / 100
+            dl_limit = max(0.1, round(dl * pct, 2))
+            ul_limit = max(0.1, round(ul * pct, 2))
+            self._calc_lbl.configure(
+                text=ar(f"الآخرون سيحصلون على: ⬇️ {dl_limit} Mbps  ⬆️ {ul_limit} Mbps")
+            )
+        except (ValueError, ZeroDivisionError):
+            self._calc_lbl.configure(text=ar("أدخل أرقاماً صحيحة"))
+
     def _confirm(self):
         ip = self.selected_ip.get()
-        if ip and self.on_confirm:
-            self.on_confirm(ip)
+        if not ip:
+            return
+        try:
+            dl = float(self._dl_var.get())
+            ul = float(self._ul_var.get())
+            pct = self._pct_var.get() / 100
+            # تحويل إلى kbit (tc يعمل بـ kbit)
+            dl_kbit = max(64, int(dl * pct * 1000))
+            ul_kbit = max(64, int(ul * pct * 1000))
+        except ValueError:
+            dl_kbit, ul_kbit = 512, 256
+        if self.on_confirm:
+            self.on_confirm(ip, dl_kbit, ul_kbit)
         self.destroy()
 
 
 class GameMonitorDialog(ctk.CTkToplevel):
-    """نافذة المعلومات الحية لوضع الألعاب - تُظهر ping كل جهاز كإثبات"""
-    def __init__(self, master, priority_ip, devices):
+    """نافذة المعلومات الحية لوضع الألعاب"""
+    def __init__(self, master, priority_ip, devices, dl_limit_kbit=512, ul_limit_kbit=256):
         super().__init__(master)
         self.title("🎮 Game Mode — Live Stats")
-        self.geometry("480x420")
+        self.geometry("460x400")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
         self._running = True
@@ -217,62 +304,76 @@ class GameMonitorDialog(ctk.CTkToplevel):
         self._devices = [d for d in devices if not d.get("is_router")]
 
         ctk.CTkLabel(self, text="🎮 " + ar("وضع الألعاب نشط"),
-                     font=ctk.CTkFont(size=18, weight="bold"),
-                     text_color=COLORS["accent_green"]).pack(pady=(15,3))
-        ctk.CTkLabel(self, text=ar(f"الأولوية: {priority_ip}  •  الباقون محدودون بـ 512kbit"),
-                     font=ctk.CTkFont(size=12), text_color=COLORS["text_secondary"]).pack(pady=(0,10))
+                     font=ctk.CTkFont(size=17, weight="bold"),
+                     text_color=COLORS["accent_green"]).pack(pady=(14, 2))
 
-        # جدول الأجهزة
+        # عرض IP + اسم فقط
+        priority_dev = next((d for d in devices if d["ip"] == priority_ip), None)
+        priority_label = priority_ip
+        if priority_dev:
+            name = priority_dev.get("hostname", "")
+            if name and name not in ("غير معروف", "localhost"):
+                priority_label = f"{priority_ip}  —  {name}"
+
+        dl_mbps = round(dl_limit_kbit / 1000, 2)
+        ul_mbps = round(ul_limit_kbit / 1000, 2)
+        ctk.CTkLabel(self,
+                     text=ar(f"الأولوية: {priority_label}\nالآخرون: ⬇️{dl_mbps} Mbps  ⬆️{ul_mbps} Mbps"),
+                     font=ctk.CTkFont(size=11), text_color=COLORS["text_secondary"],
+                     justify="center").pack(pady=(0, 8))
+
+        # جدول
         header = ctk.CTkFrame(self, fg_color=COLORS["bg_sidebar"], corner_radius=8)
-        header.pack(fill="x", padx=20, pady=(0,5))
-        ctk.CTkLabel(header, text=ar("الجهاز"), width=160, font=ctk.CTkFont(size=12, weight="bold"),
-                     text_color=COLORS["text_muted"]).pack(side="left", padx=10, pady=6)
-        ctk.CTkLabel(header, text="Ping (ms)", width=100, font=ctk.CTkFont(size=12, weight="bold"),
-                     text_color=COLORS["text_muted"]).pack(side="left")
-        ctk.CTkLabel(header, text=ar("الحالة"), width=120, font=ctk.CTkFont(size=12, weight="bold"),
-                     text_color=COLORS["text_muted"]).pack(side="left")
+        header.pack(fill="x", padx=20, pady=(0, 4))
+        for txt, w in [(ar("الجهاز"), 200), ("Ping (ms)", 90), (ar("الحالة"), 110)]:
+            ctk.CTkLabel(header, text=txt, width=w,
+                         font=ctk.CTkFont(size=11, weight="bold"),
+                         text_color=COLORS["text_muted"]).pack(side="left", padx=6, pady=5)
 
         self._rows = {}
-        scroll = ctk.CTkScrollableFrame(self, fg_color=COLORS["bg_sidebar"], corner_radius=8, height=220)
-        scroll.pack(fill="x", padx=20, pady=0)
+        scroll = ctk.CTkScrollableFrame(self, fg_color=COLORS["bg_sidebar"], corner_radius=8, height=200)
+        scroll.pack(fill="x", padx=20)
 
         for dev in self._devices:
             ip = dev["ip"]
             is_priority = (ip == priority_ip)
-            row = ctk.CTkFrame(scroll, fg_color=COLORS["bg_card"] if is_priority else "transparent", corner_radius=6)
+            row = ctk.CTkFrame(scroll,
+                               fg_color=COLORS["bg_card"] if is_priority else "transparent",
+                               corner_radius=6)
             row.pack(fill="x", pady=2, padx=3)
 
-            icon = "⭐" if is_priority else "🔵"
-            vendor = dev.get("vendor", "")[:18]
-            ctk.CTkLabel(row, text=f"{icon} {ip}  {vendor}", width=200,
-                         font=ctk.CTkFont(size=12), text_color=COLORS["text_primary"],
-                         anchor="w").pack(side="left", padx=8, pady=6)
+            # IP + اسم فقط
+            hostname = dev.get("hostname", "")
+            display = f"{'⭐' if is_priority else '🔵'} {ip}"
+            if hostname and hostname not in ("غير معروف", "localhost"):
+                display += f"  {hostname}"
+
+            ctk.CTkLabel(row, text=display, width=200,
+                         font=ctk.CTkFont(size=11), text_color=COLORS["text_primary"],
+                         anchor="w").pack(side="left", padx=8, pady=5)
 
             ping_lbl = ctk.CTkLabel(row, text="...", width=80,
-                                    font=ctk.CTkFont(size=13, weight="bold"),
+                                    font=ctk.CTkFont(size=12, weight="bold"),
                                     text_color=COLORS["text_muted"])
             ping_lbl.pack(side="left")
 
-            status_lbl = ctk.CTkLabel(row, text="", width=120,
+            status_lbl = ctk.CTkLabel(row, text="", width=110,
                                       font=ctk.CTkFont(size=11),
                                       text_color=COLORS["text_muted"])
             status_lbl.pack(side="left")
-
             self._rows[ip] = (ping_lbl, status_lbl, is_priority)
 
         ctk.CTkLabel(self, text=ar("🔄 يتحدث كل 3 ثوانٍ"),
-                     font=ctk.CTkFont(size=11), text_color=COLORS["text_muted"]).pack(pady=8)
-        ctk.CTkButton(self, text=ar("إغلاق"), width=120,
+                     font=ctk.CTkFont(size=10), text_color=COLORS["text_muted"]).pack(pady=6)
+        ctk.CTkButton(self, text=ar("إغلاق"), width=110,
                       fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"],
-                      command=self._close).pack(pady=5)
+                      command=self._close).pack(pady=4)
 
         self.protocol("WM_DELETE_WINDOW", self._close)
         self.after(100, lambda: _safe_grab(self))
-        # ابدأ التحديث
         threading.Thread(target=self._update_loop, daemon=True).start()
 
     def _ping_once(self, ip):
-        """ping جهاز وإرجاع الـ latency بالـ ms أو None"""
         try:
             r = subprocess.run(["ping", "-c", "1", "-W", "2", ip],
                                capture_output=True, text=True)
@@ -291,30 +392,29 @@ class GameMonitorDialog(ctk.CTkToplevel):
                     break
                 ip = dev["ip"]
                 latency = self._ping_once(ip)
-                if ip in self._rows:
-                    ping_lbl, status_lbl, is_priority = self._rows[ip]
-                    if latency is not None:
-                        if latency < 20:
-                            color = COLORS["accent_green"]
-                            status = ar("ممتاز 🟢") if is_priority else ar("محدود 🔴")
-                        elif latency < 60:
-                            color = COLORS["accent_orange"]
-                            status = ar("جيد 🟡") if is_priority else ar("محدود 🔴")
-                        else:
-                            color = COLORS["accent_red"]
-                            status = ar("بطيء 🔴")
-                        try:
-                            ping_lbl.after(0, lambda l=ping_lbl, v=f"{latency:.1f}", c=color: (
-                                l.configure(text=v, text_color=c)))
-                            status_lbl.after(0, lambda s=status_lbl, v=status: s.configure(text=v))
-                        except Exception:
-                            pass
-                    else:
-                        try:
-                            ping_lbl.after(0, lambda l=ping_lbl: l.configure(text="—", text_color=COLORS["text_muted"]))
-                            status_lbl.after(0, lambda s=status_lbl: s.configure(text=ar("غير متاح")))
-                        except Exception:
-                            pass
+                if ip not in self._rows:
+                    continue
+                ping_lbl, status_lbl, is_priority = self._rows[ip]
+                if latency is not None:
+                    color = (COLORS["accent_green"] if latency < 50
+                             else COLORS["accent_orange"] if latency < 150
+                             else COLORS["accent_red"])
+                    status = ar("أولوية ⭐") if is_priority else ar("محدود 🔴")
+                    try:
+                        ping_lbl.after(0, lambda l=ping_lbl, v=f"{latency:.0f}", c=color:
+                                       l.configure(text=v, text_color=c))
+                        status_lbl.after(0, lambda s=status_lbl, v=status:
+                                         s.configure(text=v))
+                    except Exception:
+                        pass
+                else:
+                    try:
+                        ping_lbl.after(0, lambda l=ping_lbl:
+                                       l.configure(text="—", text_color=COLORS["text_muted"]))
+                        status_lbl.after(0, lambda s=status_lbl:
+                                         s.configure(text=ar("غير متاح")))
+                    except Exception:
+                        pass
             time.sleep(3)
 
     def _close(self):

@@ -9,19 +9,29 @@ import os
 
 
 def get_local_ip():
-    """الحصول على عنوان IP المحلي للجهاز على الشبكة المحلية"""
+    """الحصول على عنوان IP المحلي — من نفس interface الـ default gateway"""
     try:
-        # استخراج IP من الـ interface الافتراضي عبر جدول التوجيه
-        result = subprocess.check_output(["ip", "route", "get", "192.168.1.1"], text=True)
+        # استخراج الـ src IP من الـ default route مباشرة
+        result = subprocess.check_output(["ip", "route", "show", "default"], text=True)
+        # مثال: default via 192.168.1.1 dev wlp2s0 proto dhcp src 192.168.1.105
         match = re.search(r"src (\d+\.\d+\.\d+\.\d+)", result)
         if match:
             return match.group(1)
+        # إذا لم يكن src موجوداً، استخرج الـ interface ثم IP منه
+        iface_match = re.search(r"dev (\S+)", result)
+        if iface_match:
+            iface = iface_match.group(1)
+            addr_result = subprocess.check_output(
+                ["ip", "-4", "addr", "show", "dev", iface], text=True
+            )
+            addr_match = re.search(r"inet (\d+\.\d+\.\d+\.\d+)/", addr_result)
+            if addr_match:
+                return addr_match.group(1)
     except Exception:
         pass
     try:
-        # fallback: أخذ أول IP من الـ interface النشط
+        # fallback: أخذ أول IP غير loopback
         result = subprocess.check_output(["ip", "-4", "addr", "show"], text=True)
-        # ابحث عن IP في نطاق 192.168.x.x أو 10.x.x.x أو 172.x.x.x
         for match in re.finditer(r"inet (\d+\.\d+\.\d+\.\d+)/", result):
             ip = match.group(1)
             if not ip.startswith("127."):

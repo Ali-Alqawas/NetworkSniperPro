@@ -34,7 +34,7 @@ class NetworkSniperApp(ctk.CTk):
         self.port_scanner = PortScanner()
         self.game_mode = GameMode()
         self.speed_tester = SpeedTester()
-        self.monitor = NetworkMonitor(NetworkScanner())
+        self.monitor = NetworkMonitor(self.scanner)  # نفس الـ scanner
 
         # البيانات
         self.devices = []
@@ -433,6 +433,7 @@ class NetworkSniperApp(ctk.CTk):
         self.main_title.configure(text_color=COLORS["text_primary"])
         self.device_count.configure(text_color=COLORS["text_muted"])
         self.network_label.configure(text_color=COLORS["text_secondary"])
+        self.status_label.configure(text_color=COLORS["accent_green"])
         self.statusbar_text.configure(text_color=COLORS["text_muted"])
         self.time_label.configure(text_color=COLORS["text_muted"])
         # ── السايد بار (يشمل اسم التطبيق والأزرار) ──────
@@ -473,6 +474,7 @@ class NetworkSniperApp(ctk.CTk):
         log.info("جاري إغلاق التطبيق...")
         self.scanner.stop()
         self.monitor.stop()
+        self.port_scanner.cleanup()
         self.disconnector.cleanup()
         self.game_mode.cleanup()
         self.destroy()

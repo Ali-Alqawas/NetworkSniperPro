@@ -34,7 +34,7 @@ class Sidebar(ctk.CTkFrame):
         self._section(2, "أدوات الفحص")
         self.btn_scan    = self._btn(3, "📡  رادار الشبكة",   "accent_gold",   "hover_gold",    "scan")
         self.btn_stop    = self._btn(4, "🛑  إيقاف الفحص",   "accent_red",    "hover_red",     "stop",    state="disabled")
-        self.btn_monitor = self._btn(5, "👁️  المراقبة الحية", "accent_purple", "accent_purple", "monitor")
+        self.btn_monitor = self._btn(5, "👁️  المراقبة الحية", "accent_purple", "accent_blue", "monitor")
 
         self._divider(6)
 
@@ -109,8 +109,7 @@ class Sidebar(ctk.CTkFrame):
         else:
             self.btn_monitor.configure(text=ar("👁️  المراقبة الحية"),
                                        fg_color=COLORS["accent_purple"],
-                                       hover_color=COLORS["accent_purple"])
-
+                                       hover_color=COLORS["accent_blue"])
     def set_game_mode(self, v):
         if v:
             self.btn_game.configure(text=ar("🎮  إلغاء وضع الألعاب"),

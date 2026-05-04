@@ -28,6 +28,7 @@ class GameMode:
                 on_status(False, "tc غير مثبت! قم بتثبيته: sudo apt install iproute2")
             return False
         self._priority_ip = priority_ip
+        self._interface = get_default_interface()  # تحديث عند كل تفعيل
         thread = threading.Thread(target=self._apply_tc_rules, args=(on_status,), daemon=True)
         thread.start()
         return True

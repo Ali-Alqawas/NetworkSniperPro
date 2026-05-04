@@ -81,4 +81,13 @@ class PortScanner:
     def stop(self):
         self.is_scanning = False
         if self.process and self.process.poll() is None:
-            self.process.terminate()
+            try:
+                self.process.terminate()
+                self.process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+            finally:
+                self.process = None
+
+    def cleanup(self):
+        self.stop()

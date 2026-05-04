@@ -346,90 +346,86 @@ class ColorPickerDialog(ctk.CTkToplevel):
     def __init__(self, master, on_apply=None):
         super().__init__(master)
         self.title("🎨 اختيار الألوان")
-        self.geometry("560x580")
+        self.geometry("580x660")
+        self.minsize(580, 600)
         self.configure(fg_color=COLORS["bg_dark"])
-        self.resizable(False, False)
+        self.resizable(True, True)
         self.on_apply = on_apply
 
         import config
         self._sel_bg   = ctk.StringVar(value=config.COLORS["bg_dark"])
         self._sel_card = ctk.StringVar(value=config.COLORS["bg_sidebar"])
 
+        # ── العنوان ──────────────────────────────────────
         ctk.CTkLabel(self, text=ar("🎨 تخصيص الألوان"),
                      font=ctk.CTkFont(size=18, weight="bold"),
-                     text_color=COLORS["text_primary"]).pack(pady=(18, 4))
+                     text_color=COLORS["text_primary"]).pack(pady=(18, 2))
         ctk.CTkLabel(self, text=ar("اختر لون الخلفية ولون القوالب"),
                      font=ctk.CTkFont(size=12),
-                     text_color=COLORS["text_muted"]).pack(pady=(0, 10))
+                     text_color=COLORS["text_muted"]).pack(pady=(0, 8))
 
-        content = ctk.CTkFrame(self, fg_color="transparent")
-        content.pack(fill="both", expand=True, padx=16)
-        content.grid_columnconfigure(0, weight=1)
-        content.grid_columnconfigure(1, weight=1)
+        # ── الأزرار في الأعلى دائماً مرئية ──────────────
+        btn_frame = ctk.CTkFrame(self, fg_color=COLORS["bg_sidebar"], corner_radius=10)
+        btn_frame.pack(fill="x", padx=16, pady=(0, 8))
 
-        # ── عمود الخلفية ────────────────────────────────
-        ctk.CTkLabel(content, text=ar("🖥️  لون الخلفية"),
-                     font=ctk.CTkFont(size=13, weight="bold"),
-                     text_color=COLORS["text_primary"]).grid(row=0, column=0, pady=(0,6))
-
-        bg_scroll = ctk.CTkScrollableFrame(content, fg_color=COLORS["bg_sidebar"],
-                                           corner_radius=10, height=360)
-        bg_scroll.grid(row=1, column=0, sticky="nsew", padx=(0, 6))
-
-        for name, hex_color, emoji in PALETTE_BG:
-            self._color_row(bg_scroll, name, hex_color, emoji, self._sel_bg)
-
-        # ── عمود القوالب ────────────────────────────────
-        ctk.CTkLabel(content, text=ar("🗂️  لون القوالب"),
-                     font=ctk.CTkFont(size=13, weight="bold"),
-                     text_color=COLORS["text_primary"]).grid(row=0, column=1, pady=(0,6))
-
-        card_scroll = ctk.CTkScrollableFrame(content, fg_color=COLORS["bg_sidebar"],
-                                             corner_radius=10, height=360)
-        card_scroll.grid(row=1, column=1, sticky="nsew", padx=(6, 0))
-
-        for name, hex_color, emoji in PALETTE_CARD:
-            self._color_row(card_scroll, name, hex_color, emoji, self._sel_card)
-
-        # ── معاينة + أزرار ──────────────────────────────
-        preview_frame = ctk.CTkFrame(self, fg_color="transparent")
-        preview_frame.pack(fill="x", padx=16, pady=(10, 4))
-
-        ctk.CTkLabel(preview_frame, text=ar("معاينة:"),
+        # معاينة
+        ctk.CTkLabel(btn_frame, text=ar("معاينة:"),
                      font=ctk.CTkFont(size=11),
+                     text_color=COLORS["text_muted"]).pack(side="left", padx=(12, 6), pady=8)
+        self.prev_bg = ctk.CTkFrame(btn_frame, width=28, height=20, corner_radius=4,
+                                    fg_color=self._sel_bg.get(),
+                                    border_width=1, border_color=COLORS["bg_input"])
+        self.prev_bg.pack(side="left", padx=(0,3))
+        self.prev_bg.pack_propagate(False)
+        ctk.CTkLabel(btn_frame, text=ar("خلفية"),
+                     font=ctk.CTkFont(size=10),
                      text_color=COLORS["text_muted"]).pack(side="left", padx=(0,8))
-
-        self.prev_bg = ctk.CTkFrame(preview_frame, width=36, height=24,
-                                    corner_radius=6,
-                                    fg_color=self._sel_bg.get())
-        self.prev_bg.pack(side="left", padx=2)
-        ctk.CTkLabel(preview_frame, text=ar("خلفية"),
+        self.prev_card = ctk.CTkFrame(btn_frame, width=28, height=20, corner_radius=4,
+                                      fg_color=self._sel_card.get(),
+                                      border_width=1, border_color=COLORS["bg_input"])
+        self.prev_card.pack(side="left", padx=(0,3))
+        self.prev_card.pack_propagate(False)
+        ctk.CTkLabel(btn_frame, text=ar("قوالب"),
                      font=ctk.CTkFont(size=10),
-                     text_color=COLORS["text_muted"]).pack(side="left", padx=(0,10))
+                     text_color=COLORS["text_muted"]).pack(side="left", padx=(0,12))
 
-        self.prev_card = ctk.CTkFrame(preview_frame, width=36, height=24,
-                                      corner_radius=6,
-                                      fg_color=self._sel_card.get())
-        self.prev_card.pack(side="left", padx=2)
-        ctk.CTkLabel(preview_frame, text=ar("قوالب"),
-                     font=ctk.CTkFont(size=10),
-                     text_color=COLORS["text_muted"]).pack(side="left")
+        ctk.CTkButton(btn_frame, text=ar("✅ تطبيق"), width=130, height=32,
+                      fg_color=COLORS["accent_gold"], hover_color=COLORS["hover_gold"],
+                      text_color=COLORS["text_primary"],
+                      font=ctk.CTkFont(size=13, weight="bold"),
+                      command=self._apply).pack(side="right", padx=(0,6), pady=6)
+        ctk.CTkButton(btn_frame, text=ar("إلغاء"), width=90, height=32,
+                      fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"],
+                      text_color=COLORS["text_secondary"],
+                      command=self.destroy).pack(side="right", padx=(0,4), pady=6)
 
         # تحديث المعاينة عند التغيير
         self._sel_bg.trace_add("write",   lambda *_: self.prev_bg.configure(fg_color=self._sel_bg.get()))
         self._sel_card.trace_add("write", lambda *_: self.prev_card.configure(fg_color=self._sel_card.get()))
 
-        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.pack(pady=(6, 16))
-        ctk.CTkButton(btn_frame, text=ar("إلغاء"), width=120, height=34,
-                      fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"],
-                      text_color=COLORS["text_secondary"],
-                      command=self.destroy).pack(side="left", padx=8)
-        ctk.CTkButton(btn_frame, text=ar("✅ تطبيق"), width=140, height=34,
-                      fg_color=COLORS["accent_gold"], hover_color=COLORS["hover_gold"],
-                      text_color=COLORS["text_primary"],
-                      font=ctk.CTkFont(size=13, weight="bold"),
-                      command=self._apply).pack(side="left", padx=8)
+        # ── القوائم ──────────────────────────────────────
+        content = ctk.CTkFrame(self, fg_color="transparent")
+        content.pack(fill="both", expand=True, padx=16, pady=(0,12))
+        content.grid_columnconfigure(0, weight=1)
+        content.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(content, text=ar("🖥️  لون الخلفية"),
+                     font=ctk.CTkFont(size=13, weight="bold"),
+                     text_color=COLORS["text_primary"]).grid(row=0, column=0, pady=(0,6))
+        bg_scroll = ctk.CTkScrollableFrame(content, fg_color=COLORS["bg_sidebar"],
+                                           corner_radius=10)
+        bg_scroll.grid(row=1, column=0, sticky="nsew", padx=(0,6))
+        for name, hex_color, emoji in PALETTE_BG:
+            self._color_row(bg_scroll, name, hex_color, emoji, self._sel_bg)
+
+        ctk.CTkLabel(content, text=ar("🗂️  لون القوالب"),
+                     font=ctk.CTkFont(size=13, weight="bold"),
+                     text_color=COLORS["text_primary"]).grid(row=0, column=1, pady=(0,6))
+        card_scroll = ctk.CTkScrollableFrame(content, fg_color=COLORS["bg_sidebar"],
+                                             corner_radius=10)
+        card_scroll.grid(row=1, column=1, sticky="nsew", padx=(6,0))
+        for name, hex_color, emoji in PALETTE_CARD:
+            self._color_row(card_scroll, name, hex_color, emoji, self._sel_card)
 
         self.after(100, lambda: _safe_grab(self))
 

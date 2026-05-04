@@ -58,33 +58,60 @@ class PortResultDialog(ctk.CTkToplevel):
     def __init__(self, master, ip, ports):
         super().__init__(master)
         self.title(f"Port Scan - {ip}")
-        self.geometry("600x500")
+        self.geometry("620x520")
         self.configure(fg_color=COLORS["bg_dark"])
 
-        ctk.CTkLabel(self, text=ar(f"🔍 نتائج فحص المنافذ - {ip}"), font=ctk.CTkFont(size=18, weight="bold"), text_color=COLORS["text_primary"]).pack(pady=(20,5))
-        ctk.CTkLabel(self, text=ar(f"تم العثور على {len(ports)} منفذ مفتوح"), font=ctk.CTkFont(size=13), text_color=COLORS["text_secondary"]).pack(pady=(0,10))
+        open_ports   = [p for p in ports if p["state"] == "open"]
+        closed_ports = [p for p in ports if p["state"] != "open"]
+
+        ctk.CTkLabel(self, text=ar(f"🔍 نتائج فحص المنافذ — {ip}"),
+                     font=ctk.CTkFont(size=18, weight="bold"),
+                     text_color=COLORS["text_primary"]).pack(pady=(20, 3))
+
+        summary = f"🟢 {len(open_ports)} مفتوح   🔴 {len(closed_ports)} مغلق"
+        ctk.CTkLabel(self, text=ar(summary), font=ctk.CTkFont(size=13),
+                     text_color=COLORS["text_secondary"]).pack(pady=(0, 10))
 
         scroll = ctk.CTkScrollableFrame(self, fg_color=COLORS["bg_sidebar"])
-        scroll.pack(fill="both", expand=True, padx=20, pady=10)
+        scroll.pack(fill="both", expand=True, padx=20, pady=5)
 
         if not ports:
-            ctk.CTkLabel(scroll, text=ar("لم يتم العثور على منافذ مفتوحة"), text_color=COLORS["text_muted"]).pack(pady=50)
+            ctk.CTkLabel(scroll, text=ar("لم تُستلم أي نتائج — تأكد من صلاحيات sudo"),
+                         text_color=COLORS["text_muted"]).pack(pady=50)
+        elif not open_ports:
+            ctk.CTkLabel(scroll, text=ar("✅ لا توجد منافذ مفتوحة — الجهاز محمي"),
+                         font=ctk.CTkFont(size=14), text_color=COLORS["accent_green"]).pack(pady=20)
+            # عرض أبرز المنافذ المغلقة
+            ctk.CTkLabel(scroll, text=ar("المنافذ المفحوصة (كلها مغلقة):"),
+                         font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]).pack(anchor="w", padx=10, pady=(5,3))
+            for p in closed_ports[:10]:
+                pf = ctk.CTkFrame(scroll, fg_color=COLORS["bg_card"], corner_radius=6)
+                pf.pack(fill="x", pady=2, padx=5)
+                ctk.CTkLabel(pf,
+                             text=f"⚫ Port {p['port']}/{p['protocol']}  •  {p['service']}  •  مغلق",
+                             font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]).pack(anchor="w", padx=12, pady=5)
         else:
-            for p in ports:
+            # عرض المفتوحة أولاً
+            ctk.CTkLabel(scroll, text=ar("⚠️ المنافذ المفتوحة:"),
+                         font=ctk.CTkFont(size=13, weight="bold"),
+                         text_color=COLORS["accent_orange"]).pack(anchor="w", padx=10, pady=(5,3))
+            for p in open_ports:
                 pf = ctk.CTkFrame(scroll, fg_color=COLORS["bg_card"], corner_radius=8)
                 pf.pack(fill="x", pady=3, padx=5)
                 rl = p.get("risk_level", "unknown")
-                if rl == "high":
-                    color, icon = COLORS["accent_red"], "🔴"
-                elif rl == "medium":
-                    color, icon = COLORS["accent_orange"], "🟡"
-                else:
-                    color, icon = COLORS["accent_green"], "🟢"
-                txt = f"{icon} Port {p['port']}/{p['protocol']}  •  {p['service']}  •  {p['state']}"
-                ctk.CTkLabel(pf, text=txt, font=ctk.CTkFont(size=13, weight="bold"), text_color=color).pack(anchor="w", padx=15, pady=(8,2))
-                ctk.CTkLabel(pf, text=f"   {p.get('risk', '')}", font=ctk.CTkFont(size=11), text_color=COLORS["text_secondary"]).pack(anchor="w", padx=15, pady=(0,8))
+                color = COLORS["accent_red"] if rl == "high" else (COLORS["accent_orange"] if rl == "medium" else COLORS["accent_green"])
+                icon  = "🔴" if rl == "high" else ("🟡" if rl == "medium" else "🟢")
+                ctk.CTkLabel(pf,
+                             text=f"{icon} Port {p['port']}/{p['protocol']}  •  {p['service']}",
+                             font=ctk.CTkFont(size=13, weight="bold"),
+                             text_color=color).pack(anchor="w", padx=15, pady=(8, 2))
+                ctk.CTkLabel(pf, text=f"   {p.get('risk','')}",
+                             font=ctk.CTkFont(size=11),
+                             text_color=COLORS["text_secondary"]).pack(anchor="w", padx=15, pady=(0, 8))
 
-        ctk.CTkButton(self, text=ar("إغلاق"), width=120, fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"], command=self.destroy).pack(pady=15)
+        ctk.CTkButton(self, text=ar("إغلاق"), width=120,
+                      fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"],
+                      command=self.destroy).pack(pady=12)
         self.after(100, lambda: _safe_grab(self))
 
 

@@ -40,29 +40,29 @@ COLORS_DARK = {
 }
 
 COLORS_LIGHT = {
-    "bg_dark": "#f0f2f5",
-    "bg_sidebar": "#ffffff",
-    "bg_card": "#ffffff",
-    "bg_card_hover": "#e8ecf0",
-    "bg_main": "#f0f2f5",
-    "bg_input": "#e1e4e8",
-    "text_primary": "#1a1a2e",
-    "text_secondary": "#444d56",
-    "text_muted": "#959da5",
-    "accent_blue": "#0969da",
-    "accent_green": "#1a7f37",
-    "accent_red": "#cf222e",
-    "accent_orange": "#9a6700",
-    "accent_purple": "#8250df",
-    "accent_cyan": "#0969da",
-    "status_online": "#1a7f37",
-    "status_offline": "#cf222e",
-    "status_disconnected": "#cf222e",
-    "status_warning": "#9a6700",
-    "hover_blue": "#0860ca",
-    "hover_green": "#116329",
-    "hover_red": "#a40e26",
-    "hover_orange": "#7d5400",
+    "bg_dark":        "#f5f0eb",   # بيج فاتح دافئ — خلفية رئيسية
+    "bg_sidebar":     "#ede8e1",   # بيج أغمق قليلاً — الشريط الجانبي
+    "bg_card":        "#faf7f4",   # أبيض دافئ — بطاقات الأجهزة
+    "bg_card_hover":  "#ede8e1",   # بيج عند hover
+    "bg_main":        "#f5f0eb",
+    "bg_input":       "#e8e2da",   # بيج رمادي — حقول الإدخال
+    "text_primary":   "#2c2416",   # بني داكن — نص رئيسي
+    "text_secondary": "#6b5c47",   # بني متوسط — نص ثانوي
+    "text_muted":     "#a89880",   # بيج رمادي — نص خافت
+    "accent_blue":    "#4a7fa5",   # أزرق مائي هادئ
+    "accent_green":   "#4a7c59",   # أخضر زيتوني هادئ
+    "accent_red":     "#a0522d",   # بني محروق — تحذير
+    "accent_orange":  "#b8860b",   # ذهبي داكن
+    "accent_purple":  "#7b5ea7",   # بنفسجي هادئ
+    "accent_cyan":    "#4a7fa5",
+    "status_online":  "#4a7c59",
+    "status_offline": "#a0522d",
+    "status_disconnected": "#a0522d",
+    "status_warning": "#b8860b",
+    "hover_blue":     "#3a6f95",
+    "hover_green":    "#3a6c49",
+    "hover_red":      "#8b4513",
+    "hover_orange":   "#a07600",
 }
 
 # الثيم الافتراضي

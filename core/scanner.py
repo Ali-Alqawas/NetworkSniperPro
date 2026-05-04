@@ -1,13 +1,11 @@
 """
-محرك فحص الشبكة - ping sweep متوازٍ + ARP cache + nmap للتفاصيل
+محرك فحص الشبكة - nmap مباشرة مع --send-ip لاكتشاف كل الأجهزة
 """
 import subprocess
 import re
 import threading
-import concurrent.futures
 from utils.logger import log
 from utils.network import validate_network_range, get_gateway_ip, get_local_ip
-from config import NMAP_TIMEOUT
 
 try:
     from manuf import manuf as manuf_lib
@@ -15,7 +13,6 @@ try:
     HAS_MANUF = True
 except Exception:
     HAS_MANUF = False
-    log.warning("manuf غير متوفر - تحديد الشركة المصنعة محدود")
 
 
 class NetworkScanner:
@@ -38,104 +35,54 @@ class NetworkScanner:
         thread.start()
         return thread
 
-    def _ping_host(self, ip):
-        try:
-            result = subprocess.run(
-                ["ping", "-c", "2", "-W", "2", ip],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-            )
-            return result.returncode == 0
-        except Exception:
-            return False
-
-    def _ping_sweep(self, network_range, on_progress):
-        base = re.match(r"(\d+\.\d+\.\d+)\.\d+/\d+", network_range)
-        if not base:
-            return []
-        base_ip = base.group(1)
-        if on_progress:
-            on_progress("جاري ping sweep لاكتشاف الأجهزة...")
-        ips = [f"{base_ip}.{i}" for i in range(1, 255)]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
-            futures = {executor.submit(self._ping_host, ip): ip for ip in ips}
-            alive = []
-            for future in concurrent.futures.as_completed(futures):
-                if not self.is_scanning:
-                    executor.shutdown(wait=False, cancel_futures=True)
-                    return []
-                ip = futures[future]
-                if future.result():
-                    alive.append(ip)
-                    if on_progress:
-                        on_progress(f"تم اكتشاف: {ip}")
-        return alive
-
-    def _read_arp_cache(self):
-        arp = {}
-        try:
-            output = subprocess.check_output(["ip", "neigh", "show"], text=True)
-            for line in output.splitlines():
-                m = re.match(r"(\d+\.\d+\.\d+\.\d+)\s+dev\s+\S+\s+lladdr\s+([0-9a-fA-F:]+)", line)
-                if m:
-                    arp[m.group(1)] = m.group(2).upper()
-        except Exception as e:
-            log.error(f"خطأ في قراءة ARP cache: {e}")
-        return arp
-
     def _get_vendor(self, mac):
-        if not mac or "N/A" in mac:
+        if not mac or "N/A" in mac or len(mac) < 8:
             return "غير معروف"
+        # MAC عشوائي: البت الثاني من أول octet = 1
+        try:
+            first_byte = int(mac.split(":")[0], 16)
+            if first_byte & 0x02:
+                return "🔀 MAC عشوائي (خصوصية)"
+        except Exception:
+            pass
         if HAS_MANUF:
             try:
-                result = _mac_parser.get_manuf_long(mac)
-                if result:
-                    return result
-                result = _mac_parser.get_manuf(mac)
+                result = _mac_parser.get_manuf_long(mac) or _mac_parser.get_manuf(mac)
                 if result:
                     return result
             except Exception:
                 pass
         return "غير معروف"
 
-    def _parse_nmap_hostnames(self, output):
-        data = {}
-        for line in output.splitlines():
-            if line.startswith("Nmap scan report for"):
-                ip_m = re.search(r"(\d+\.\d+\.\d+\.\d+)", line)
-                if not ip_m:
-                    continue
-                ip = ip_m.group(1)
-                raw = line.replace("Nmap scan report for ", "").strip()
-                hostname = re.sub(r'\s*\(\d+\.\d+\.\d+\.\d+\)', '', raw).strip()
-                data[ip] = hostname if hostname != ip else "غير معروف"
-        return data
-
     def _run_scan(self, network_range, on_complete, on_error, on_progress):
         try:
-            alive_ips = self._ping_sweep(network_range, on_progress)
-            if not self.is_scanning:
-                return
             if on_progress:
-                on_progress("جاري قراءة بيانات الأجهزة...")
-            arp_cache = self._read_arp_cache()
-            nmap_data = {}
-            if alive_ips:
-                try:
-                    with self._lock:
-                        self.process = subprocess.Popen(
-                            ["sudo", "nmap", "-sn", "--host-timeout", "5s"] + alive_ips,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
-                        )
-                    nmap_out, _ = self.process.communicate(timeout=30)
-                    nmap_data = self._parse_nmap_hostnames(nmap_out)
-                except Exception as e:
-                    log.warning(f"nmap للـ hostnames فشل: {e}")
+                on_progress("جاري فحص الشبكة بـ nmap...")
+
+            with self._lock:
+                # --send-ip: يتجاوز AP Isolation ويكتشف أكثر الأجهزة
+                self.process = subprocess.Popen(
+                    ["sudo", "nmap", "-sn", "--send-ip", "-T4", network_range],
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+                )
+            output, _ = self.process.communicate(timeout=60)
+
             if not self.is_scanning:
                 return
-            devices = self._build_device_list(alive_ips, arp_cache, nmap_data)
+
+            if on_progress:
+                on_progress("جاري تحليل النتائج...")
+
+            devices = self._parse_nmap_output(output)
             log.info(f"تم اكتشاف {len(devices)} جهاز")
             if on_complete:
                 on_complete(devices)
+
+        except subprocess.TimeoutExpired:
+            if self.process:
+                self.process.kill()
+            if on_error:
+                on_error("انتهت مهلة الفحص")
         except Exception as e:
             log.error(f"خطأ في الفحص: {e}")
             if on_error:
@@ -144,33 +91,52 @@ class NetworkScanner:
             self.is_scanning = False
             self.process = None
 
-    def _build_device_list(self, alive_ips, arp_cache, nmap_data):
+    def _parse_nmap_output(self, output):
         gateway_ip = get_gateway_ip()
         local_ip = get_local_ip()
         devices = []
-        all_ips = list(alive_ips)
-        if local_ip not in all_ips:
-            all_ips.append(local_ip)
-        for ip in all_ips:
-            is_router = (ip == gateway_ip)
-            is_local = (ip == local_ip)
-            mac = arp_cache.get(ip, "")
-            hostname = nmap_data.get(ip, "غير معروف")
-            if mac:
-                vendor = self._get_vendor(mac)
-            elif is_local:
-                mac = "N/A (جهازك)"
-                vendor = "Local Machine"
-            elif is_router:
-                mac = "N/A (Router)"
-                vendor = "Router/Gateway"
-            else:
-                mac = "N/A"
-                vendor = "غير معروف"
+        current = {}
+
+        for line in output.splitlines():
+            if line.startswith("Nmap scan report for"):
+                if current.get("ip"):
+                    devices.append(current)
+                ip_m = re.search(r"(\d+\.\d+\.\d+\.\d+)", line)
+                if not ip_m:
+                    current = {}
+                    continue
+                ip = ip_m.group(1)
+                # hostname: النص قبل (IP)
+                raw = line.replace("Nmap scan report for ", "").strip()
+                hostname = re.sub(r'\s*\(\d+\.\d+\.\d+\.\d+\)', '', raw).strip()
+                if hostname == ip:
+                    hostname = "غير معروف"
+                current = {
+                    "ip": ip, "mac": "", "hostname": hostname, "vendor": "غير معروف",
+                    "is_local": ip == local_ip, "is_router": ip == gateway_ip, "status": "online"
+                }
+            elif line.startswith("MAC Address:") and current:
+                m = re.match(r"MAC Address: ([0-9A-Fa-f:]{17})\s*\((.+)\)", line)
+                if m:
+                    current["mac"] = m.group(1).upper()
+                    nmap_vendor = m.group(2).strip()
+                    # إذا nmap يعرف الـ vendor استخدمه، وإلا جرب manuf
+                    if nmap_vendor and nmap_vendor.lower() != "unknown":
+                        current["vendor"] = nmap_vendor
+                    else:
+                        current["vendor"] = self._get_vendor(current["mac"])
+
+        if current.get("ip"):
+            devices.append(current)
+
+        # أضف جهازك المحلي إذا لم يظهر (nmap لا يُظهر MAC لجهازك)
+        local_ips = {d["ip"] for d in devices}
+        if local_ip not in local_ips:
             devices.append({
-                "ip": ip, "mac": mac, "hostname": hostname, "vendor": vendor,
-                "is_local": is_local, "is_router": is_router, "status": "online"
+                "ip": local_ip, "mac": "N/A (جهازك)", "hostname": "localhost",
+                "vendor": "Local Machine", "is_local": True, "is_router": False, "status": "online"
             })
+
         devices.sort(key=lambda d: (0 if d["is_router"] else (1 if d["is_local"] else 2), d["ip"]))
         return devices
 
@@ -183,4 +149,3 @@ class NetworkScanner:
                     self.process.wait(timeout=3)
                 except subprocess.TimeoutExpired:
                     self.process.kill()
-                log.info("تم إيقاف عملية nmap")

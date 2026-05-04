@@ -28,9 +28,9 @@ class PortScanner:
 
     def _run_port_scan(self, target_ip, on_complete, on_error):
         try:
-            # -Pn: لا تتحقق من حياة الجهاز قبل الفحص (يحل مشكلة "Host seems down")
+            # -sT: TCP connect scan, -Pn: لا تتحقق من حياة الجهاز
             self.process = subprocess.Popen(
-                ["sudo", "nmap", "-sV", "-Pn", "-p", PORT_SCAN_LIST,
+                ["sudo", "nmap", "-sT", "-Pn", "-p", PORT_SCAN_LIST,
                  "--host-timeout", "30s", target_ip],
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
             )
@@ -40,7 +40,7 @@ class PortScanner:
                 return
 
             ports = self._parse_port_output(output)
-            log.info(f"فحص منافذ {target_ip}: وجد {len(ports)} منفذ مفتوح")
+            log.info(f"فحص منافذ {target_ip}: وجد {len([p for p in ports if p['state']=='open'])} منفذ مفتوح")
 
             if on_complete:
                 on_complete(target_ip, ports)
@@ -55,13 +55,13 @@ class PortScanner:
     def _parse_port_output(self, output):
         ports = []
         for line in output.split('\n'):
-            match = re.match(r'(\d+)/(tcp|udp)\s+(open|open\|filtered)\s+(\S+)\s*(.*)', line.strip())
+            match = re.match(r'(\d+)/(tcp|udp)\s+(open|closed|filtered)\s+(\S+)', line.strip())
             if not match:
                 continue
             port_num = int(match.group(1))
             protocol = match.group(2)
+            state = match.group(3)
             service = match.group(4)
-            version = match.group(5).strip()
 
             if port_num in DANGEROUS_PORTS:
                 svc_name, risk_desc = DANGEROUS_PORTS[port_num]
@@ -72,8 +72,8 @@ class PortScanner:
                 risk_level = "unknown"
 
             ports.append({
-                "port": port_num, "protocol": protocol, "state": "open",
-                "service": svc_name, "version": version,
+                "port": port_num, "protocol": protocol, "state": state,
+                "service": svc_name, "version": "",
                 "risk": risk_desc, "risk_level": risk_level,
             })
         return ports

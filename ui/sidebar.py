@@ -53,6 +53,8 @@ class Sidebar(ctk.CTkFrame):
         # ── الثيم — قسم مستقل ────────────────────────────
         self._section(16, "المظهر")
         self.btn_theme = self._btn(17, "☀️  الوضع النهاري", "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
+        # padding سفلي لرفع الزر عن الحافة
+        ctk.CTkFrame(self, height=16, fg_color="transparent").grid(row=18, column=0)
 
     def _divider(self, row):
         ctk.CTkFrame(self, height=1, fg_color=COLORS["bg_input"]).grid(

@@ -54,8 +54,9 @@ class Sidebar(ctk.CTkFrame):
 
         # ── المظهر ───────────────────────────────────────
         self._section(16, "المظهر")
-        self.btn_theme = self._btn(17, "☀️  الوضع النهاري", "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
-        ctk.CTkFrame(self, height=16, fg_color="transparent").grid(row=18, column=0)
+        self.btn_theme  = self._btn(17, "☀️  الوضع النهاري",  "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
+        self.btn_colors = self._btn(18, "🎨  اختيار الألوان", "bg_input", "bg_card_hover", "color_picker", secondary=True)
+        ctk.CTkFrame(self, height=16, fg_color="transparent").grid(row=19, column=0)
 
     def _divider(self, row):
         ctk.CTkFrame(self, height=1, fg_color=COLORS["bg_input"]).grid(
@@ -87,7 +88,7 @@ class Sidebar(ctk.CTkFrame):
         self.lbl_name.configure(text_color=COLORS["text_primary"])
         self.lbl_ver.configure(text_color=COLORS["accent_gold"])
         # تحديث ألوان الأزرار الثانوية
-        for btn in (self.btn_csv, self.btn_pdf, self.btn_theme):
+        for btn in (self.btn_csv, self.btn_pdf, self.btn_theme, self.btn_colors):
             btn.configure(fg_color=COLORS["bg_input"],
                           hover_color=COLORS["bg_card_hover"],
                           text_color=COLORS["text_secondary"])

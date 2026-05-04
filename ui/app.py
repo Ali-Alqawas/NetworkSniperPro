@@ -14,7 +14,7 @@ from core.monitor import NetworkMonitor
 from ui.themes import setup_theme, toggle_theme
 from ui.sidebar import Sidebar
 from ui.device_card import DeviceCard
-from ui.dialogs import DisconnectDialog, PortResultDialog, SpeedResultDialog, AlertDialog, GameModeDialog, GameMonitorDialog
+from ui.dialogs import DisconnectDialog, PortResultDialog, SpeedResultDialog, AlertDialog, GameModeDialog, GameMonitorDialog, ColorPickerDialog
 from config import COLORS, APP_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT
 
 
@@ -60,6 +60,7 @@ class NetworkSniperApp(ctk.CTk):
             "export_csv": self.do_export_csv,
             "export_pdf": self.do_export_pdf,
             "toggle_theme": self.do_toggle_theme,
+            "color_picker": self.open_color_picker,
         })
         # نفس الهوامش من كل الجهات — عائم
         self.sidebar.grid(row=0, column=1, sticky="nsew", padx=(6, 12), pady=12)
@@ -379,6 +380,40 @@ class NetworkSniperApp(ctk.CTk):
         now = datetime.now().strftime("%H:%M:%S")
         self.time_label.configure(text=now)
         self.device_count.configure(text=f"{len(devs)} " + ar("جهاز"))
+
+    def open_color_picker(self):
+        ColorPickerDialog(self, on_apply=self._apply_custom_colors)
+
+    def _apply_custom_colors(self, bg_hex, card_hex):
+        """تطبيق الألوان المختارة ديناميكياً على كل الواجهة"""
+        import config
+        config.COLORS["bg_dark"]       = bg_hex
+        config.COLORS["bg_main"]       = bg_hex
+        config.COLORS["bg_sidebar"]    = card_hex
+        config.COLORS["bg_card"]       = card_hex
+        config.COLORS["bg_card_hover"] = self._darken(card_hex, 15)
+        config.COLORS["bg_input"]      = self._darken(card_hex, 25)
+
+        self.configure(fg_color=bg_hex)
+        self.main_frame.configure(fg_color=card_hex)
+        self.devices_list.configure(fg_color=bg_hex)
+        self.statusbar.configure(fg_color=config.COLORS["bg_input"])
+        self.progress.configure(fg_color=config.COLORS["bg_input"])
+        self.sidebar.configure(fg_color=card_hex)
+        self.sidebar.refresh_theme()
+        if self.devices:
+            self._render_devices()
+        else:
+            self._show_welcome()
+        log.info(f"تم تطبيق ألوان مخصصة: bg={bg_hex} card={card_hex}")
+
+    @staticmethod
+    def _darken(hex_color, amount):
+        """تغميق لون hex بمقدار معين"""
+        hex_color = hex_color.lstrip("#")
+        r, g, b = int(hex_color[0:2],16), int(hex_color[2:4],16), int(hex_color[4:6],16)
+        r, g, b = max(0,r-amount), max(0,g-amount), max(0,b-amount)
+        return f"#{r:02x}{g:02x}{b:02x}"
 
     # ====== تبديل الثيم ======
     def do_toggle_theme(self):

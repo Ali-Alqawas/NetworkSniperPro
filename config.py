@@ -77,9 +77,63 @@ COLORS_LIGHT = {
     "hover_blue":     "#1D3E7A",
 }
 
-# الثيم الافتراضي
+# ================= الثيم الافتراضي =================
 CURRENT_THEME = "dark"
 COLORS = COLORS_DARK.copy()
+
+# ================= لوحة اختيار الألوان =================
+# (الاسم، اللون، رمز بصري)
+PALETTE_BG = [
+    ("Shadow",       "#1D1C1C", "⬛"),
+    ("Charcoal",     "#262424", "🌑"),
+    ("Espresso",     "#221C19", "☕"),
+    ("Dark Walnut",  "#342B27", "🪵"),
+    ("Obsidian",     "#1E1D1D", "🖤"),
+    ("Onyx",         "#101211", "⚫"),
+    ("Deep Night",   "#29281E", "🌃"),
+    ("Midnight",     "#1A1A1A", "🌚"),
+    ("Dark Slate",   "#252728", "🔲"),
+    ("Graphite",     "#2F2F2F", "🩶"),
+    ("Dark Teal",    "#162127", "🌊"),
+    ("Deep Ocean",   "#0C1519", "🌊"),
+    ("Abyss",        "#0F2027", "🌌"),
+    ("Forest Night", "#0E130F", "🌲"),
+    ("Dark Forest",  "#2F3A17", "🌿"),
+    ("Dark Olive",   "#4B4D39", "🫒"),
+    ("Dark Plum",    "#2D1E2F", "🍇"),
+    ("Deep Purple",  "#4E2A4F", "💜"),
+    ("Maroon",       "#381932", "🍷"),
+    ("Dark Mocha",   "#3A3534", "🍫"),
+    ("Dark Smoke",   "#1E2023", "🌫️"),
+    ("Charcoal Blue","#47484C", "🔵"),
+    ("Iron",         "#1E1F22", "⚙️"),
+    ("Steel",        "#4C4E51", "🔩"),
+    ("Ocean Deep",   "#2C5364", "🌊"),
+    ("Dark Crimson", "#3E000C", "🔴"),
+]
+
+PALETTE_CARD = [
+    ("Almond",       "#EEE5DA", "🌾"),
+    ("Cream",        "#FFECD1", "🍦"),
+    ("Ivory",        "#FEFBF6", "🤍"),
+    ("Warm White",   "#FFF3E6", "☁️"),
+    ("Sand",         "#E3D5BB", "🏖️"),
+    ("Linen",        "#BFB8AF", "🧺"),
+    ("Sage",         "#DFEOD5", "🌿"),
+    ("Parchment",    "#ADA996", "📜"),
+    ("Warm Gray",    "#867C70", "🩶"),
+    ("Taupe",        "#7E6957", "🤎"),
+    ("Mocha",        "#5A4D41", "☕"),
+    ("Walnut",       "#5E4B43", "🪵"),
+    ("Caramel",      "#CF9D7B", "🍮"),
+    ("Gold",         "#C8AA5F", "✨"),
+    ("Amber",        "#A07F3A", "🍯"),
+    ("Bronze",       "#857861", "🥉"),
+    ("Copper",       "#5E4814", "🪙"),
+    ("Slate Blue",   "#727B96", "💙"),
+    ("Deep Charcoal","#262424", "🌑"),
+    ("Charcoal",     "#3A3534", "🔲"),
+]
 
 # ================= إعدادات Nmap =================
 NMAP_TIMEOUT = "15s"

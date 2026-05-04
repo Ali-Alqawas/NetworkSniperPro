@@ -384,28 +384,32 @@ class NetworkSniperApp(ctk.CTk):
     def open_color_picker(self):
         ColorPickerDialog(self, on_apply=self._apply_custom_colors)
 
-    def _apply_custom_colors(self, bg_hex, card_hex):
-        """تطبيق الألوان المختارة ديناميكياً على كل الواجهة"""
+    def _apply_custom_colors(self, bg_hex, card_hex, target):
+        """تطبيق الألوان على الثيم المحدد (dark أو light)"""
         import config
-        config.COLORS["bg_dark"]       = bg_hex
-        config.COLORS["bg_main"]       = bg_hex
-        config.COLORS["bg_sidebar"]    = card_hex
-        config.COLORS["bg_card"]       = card_hex
-        config.COLORS["bg_card_hover"] = self._darken(card_hex, 15)
-        config.COLORS["bg_input"]      = self._darken(card_hex, 25)
+        palette = config.COLORS_DARK if target == "dark" else config.COLORS_LIGHT
+        palette["bg_dark"]       = bg_hex
+        palette["bg_main"]       = bg_hex
+        palette["bg_sidebar"]    = card_hex
+        palette["bg_card"]       = card_hex
+        palette["bg_card_hover"] = self._darken(card_hex, 15)
+        palette["bg_input"]      = self._darken(card_hex, 25)
 
-        self.configure(fg_color=bg_hex)
-        self.main_frame.configure(fg_color=card_hex)
-        self.devices_list.configure(fg_color=bg_hex)
-        self.statusbar.configure(fg_color=config.COLORS["bg_input"])
-        self.progress.configure(fg_color=config.COLORS["bg_input"])
-        self.sidebar.configure(fg_color=card_hex)
-        self.sidebar.refresh_theme()
-        if self.devices:
-            self._render_devices()
-        else:
-            self._show_welcome()
-        log.info(f"تم تطبيق ألوان مخصصة: bg={bg_hex} card={card_hex}")
+        # إذا كان الثيم الحالي هو المستهدف — طبّق فوراً على الواجهة
+        if target == config.CURRENT_THEME:
+            config.COLORS.update(palette)
+            self.configure(fg_color=bg_hex)
+            self.main_frame.configure(fg_color=card_hex)
+            self.devices_list.configure(fg_color=bg_hex)
+            self.statusbar.configure(fg_color=config.COLORS["bg_input"])
+            self.progress.configure(fg_color=config.COLORS["bg_input"])
+            self.sidebar.configure(fg_color=card_hex)
+            self.sidebar.refresh_theme()
+            if self.devices:
+                self._render_devices()
+            else:
+                self._show_welcome()
+        log.info(f"تم تطبيق ألوان مخصصة على {target}: bg={bg_hex} card={card_hex}")
 
     @staticmethod
     def _darken(hex_color, amount):

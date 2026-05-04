@@ -355,6 +355,7 @@ class ColorPickerDialog(ctk.CTkToplevel):
         import config
         self._sel_bg   = ctk.StringVar(value=config.COLORS["bg_dark"])
         self._sel_card = ctk.StringVar(value=config.COLORS["bg_sidebar"])
+        self._target   = ctk.StringVar(value=config.CURRENT_THEME)  # dark أو light
 
         # ── العنوان ──────────────────────────────────────
         ctk.CTkLabel(self, text=ar("🎨 تخصيص الألوان"),
@@ -367,6 +368,19 @@ class ColorPickerDialog(ctk.CTkToplevel):
         # ── الأزرار في الأعلى دائماً مرئية ──────────────
         btn_frame = ctk.CTkFrame(self, fg_color=COLORS["bg_sidebar"], corner_radius=10)
         btn_frame.pack(fill="x", padx=16, pady=(0, 8))
+
+        # طبّق على
+        ctk.CTkLabel(btn_frame, text=ar("طبّق على:"),
+                     font=ctk.CTkFont(size=11),
+                     text_color=COLORS["text_muted"]).pack(side="left", padx=(12,4), pady=8)
+        ctk.CTkRadioButton(btn_frame, text=ar("🌙 ليلي"), variable=self._target, value="dark",
+                           font=ctk.CTkFont(size=11), text_color=COLORS["text_primary"],
+                           fg_color=COLORS["accent_gold"], hover_color=COLORS["hover_gold"]
+                           ).pack(side="left", padx=(0,6))
+        ctk.CTkRadioButton(btn_frame, text=ar("☀️ نهاري"), variable=self._target, value="light",
+                           font=ctk.CTkFont(size=11), text_color=COLORS["text_primary"],
+                           fg_color=COLORS["accent_gold"], hover_color=COLORS["hover_gold"]
+                           ).pack(side="left", padx=(0,10))
 
         # معاينة
         ctk.CTkLabel(btn_frame, text=ar("معاينة:"),
@@ -454,5 +468,5 @@ class ColorPickerDialog(ctk.CTkToplevel):
 
     def _apply(self):
         if self.on_apply:
-            self.on_apply(self._sel_bg.get(), self._sel_card.get())
+            self.on_apply(self._sel_bg.get(), self._sel_card.get(), self._target.get())
         self.destroy()

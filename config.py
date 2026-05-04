@@ -47,34 +47,34 @@ COLORS_DARK = {
 
 COLORS_LIGHT = {
     # ── خلفيات ──────────────────────────────────────────
-    "bg_dark":        "#262424",   # خلفية الشاشة — داكنة لإبراز القوالب
-    "bg_sidebar":     "#EEE5DA",   # السايد بار — بيج دافئ
-    "bg_card":        "#EEE5DA",   # بطاقات الأجهزة — بيج دافئ
-    "bg_card_hover":  "#E0D8CE",   # hover أغمق قليلاً
-    "bg_main":        "#262424",
-    "bg_input":       "#DDD5C8",   # حقول الإدخال
+    "bg_dark":        "#3E000C",   # خلفية الشاشة — أحمر داكن عميق
+    "bg_sidebar":     "#FFECD1",   # السايد بار والقوالب — كريمي دافئ
+    "bg_card":        "#FFECD1",   # بطاقات الأجهزة
+    "bg_card_hover":  "#F5DFC0",   # hover أغمق قليلاً
+    "bg_main":        "#3E000C",
+    "bg_input":       "#EDD9B8",   # حقول الإدخال
     # ── نصوص ────────────────────────────────────────────
-    "text_primary":   "#1A1818",   # نص رئيسي — شبه أسود، تباين عالٍ
-    "text_secondary": "#3D3530",   # نص ثانوي — بني داكن
-    "text_muted":     "#6B5F57",   # نص خافت
-    # ── Accent موحد ──────────────────────────────────────
-    "accent_gold":    "#8B6F47",   # ذهبي أغمق ليظهر على البيج
-    "hover_gold":     "#7A5F3A",
+    "text_primary":   "#1A0005",   # نص رئيسي — داكن جداً على الكريمي
+    "text_secondary": "#3D1A10",   # نص ثانوي
+    "text_muted":     "#7A4A3A",   # نص خافت
+    # ── Accent ───────────────────────────────────────────
+    "accent_gold":    "#8B3A20",   # بني-أحمر داكن يتناسق مع الخلفية
+    "hover_gold":     "#7A2A10",
     # ── ألوان الحالة ─────────────────────────────────────
     "accent_green":   "#2D6A3F",
     "accent_red":     "#8B2E26",
-    "accent_orange":  "#8B6010",
-    "accent_blue":    "#2D5E8A",
+    "accent_orange":  "#8B5010",
+    "accent_blue":    "#2D4E8A",
     "accent_purple":  "#5E3D8A",
-    "accent_cyan":    "#2D6E7A",
+    "accent_cyan":    "#2D5E7A",
     "status_online":  "#2D6A3F",
     "status_offline": "#8B2E26",
     "status_disconnected": "#8B2E26",
-    "status_warning": "#8B6010",
+    "status_warning": "#8B5010",
     "hover_green":    "#1D5A2F",
     "hover_red":      "#7A1E16",
-    "hover_orange":   "#7A5000",
-    "hover_blue":     "#1D4E7A",
+    "hover_orange":   "#7A4000",
+    "hover_blue":     "#1D3E7A",
 }
 
 # الثيم الافتراضي

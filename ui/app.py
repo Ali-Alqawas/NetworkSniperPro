@@ -383,22 +383,23 @@ class NetworkSniperApp(ctk.CTk):
     # ====== تبديل الثيم ======
     def do_toggle_theme(self):
         new_mode = toggle_theme()
-        self.sidebar.set_theme(new_mode)
         from config import COLORS
         # ── خلفيات ──────────────────────────────────────
         self.configure(fg_color=COLORS["bg_dark"])
         self.main_frame.configure(fg_color=COLORS["bg_sidebar"])
         self.devices_list.configure(fg_color=COLORS["bg_dark"])
         self.statusbar.configure(fg_color=COLORS["bg_input"])
-        self.sidebar.configure(fg_color=COLORS["bg_sidebar"])
         self.progress.configure(fg_color=COLORS["bg_input"], progress_color=COLORS["accent_gold"])
-        # ── نصوص تتأثر بالثيم ───────────────────────────
+        # ── نصوص ────────────────────────────────────────
         self.main_title.configure(text_color=COLORS["text_primary"])
         self.device_count.configure(text_color=COLORS["text_muted"])
         self.network_label.configure(text_color=COLORS["text_secondary"])
         self.statusbar_text.configure(text_color=COLORS["text_muted"])
         self.time_label.configure(text_color=COLORS["text_muted"])
-        # ── إعادة رسم الأجهزة ───────────────────────────
+        # ── السايد بار (يشمل اسم التطبيق والأزرار) ──────
+        self.sidebar.refresh_theme()
+        self.sidebar.set_theme(new_mode)
+        # ── إعادة رسم المحتوى ───────────────────────────
         if self.devices:
             self._render_devices()
         else:

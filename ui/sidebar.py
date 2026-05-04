@@ -19,12 +19,14 @@ class Sidebar(ctk.CTkFrame):
         ctk.CTkLabel(lf, text="🔫", font=ctk.CTkFont(size=30)).pack(side="left", padx=(0, 10))
         tf = ctk.CTkFrame(lf, fg_color="transparent")
         tf.pack(side="left")
-        ctk.CTkLabel(tf, text="Network Sniper",
+        self.lbl_name = ctk.CTkLabel(tf, text="Network Sniper",
                      font=ctk.CTkFont(size=17, weight="bold"),
-                     text_color=COLORS["text_primary"]).pack(anchor="w")
-        ctk.CTkLabel(tf, text="Pro v2.0",
+                     text_color=COLORS["text_primary"])
+        self.lbl_name.pack(anchor="w")
+        self.lbl_ver = ctk.CTkLabel(tf, text="Pro v2.0",
                      font=ctk.CTkFont(size=11),
-                     text_color=COLORS["accent_gold"]).pack(anchor="w")
+                     text_color=COLORS["accent_gold"])
+        self.lbl_ver.pack(anchor="w")
 
         self._divider(1)
 
@@ -50,10 +52,9 @@ class Sidebar(ctk.CTkFrame):
 
         self._divider(15)
 
-        # ── الثيم — قسم مستقل ────────────────────────────
+        # ── المظهر ───────────────────────────────────────
         self._section(16, "المظهر")
         self.btn_theme = self._btn(17, "☀️  الوضع النهاري", "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
-        # padding سفلي لرفع الزر عن الحافة
         ctk.CTkFrame(self, height=16, fg_color="transparent").grid(row=18, column=0)
 
     def _divider(self, row):
@@ -79,6 +80,20 @@ class Sidebar(ctk.CTkFrame):
         )
         b.grid(row=row, column=0, padx=16, pady=3, sticky="ew")
         return b
+
+    def refresh_theme(self):
+        """تحديث كل ألوان السايد بار عند تبديل الثيم"""
+        self.configure(fg_color=COLORS["bg_sidebar"])
+        self.lbl_name.configure(text_color=COLORS["text_primary"])
+        self.lbl_ver.configure(text_color=COLORS["accent_gold"])
+        # تحديث ألوان الأزرار الثانوية
+        for btn in (self.btn_csv, self.btn_pdf, self.btn_theme):
+            btn.configure(fg_color=COLORS["bg_input"],
+                          hover_color=COLORS["bg_card_hover"],
+                          text_color=COLORS["text_secondary"])
+        # تحديث زر رادار الشبكة (accent_gold)
+        self.btn_scan.configure(fg_color=COLORS["accent_gold"],
+                                hover_color=COLORS["hover_gold"])
 
     # ── حالة الأزرار ─────────────────────────────────────
     def set_scanning(self, v):

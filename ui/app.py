@@ -65,50 +65,90 @@ class NetworkSniperApp(ctk.CTk):
         self.sidebar.grid(row=0, column=1, sticky="nsew")
 
     def _build_main_area(self):
-        self.main_frame = ctk.CTkFrame(self, corner_radius=15, fg_color=COLORS["bg_sidebar"])
-        self.main_frame.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
+        # الإطار الرئيسي — حواف ناعمة، منفصل بصرياً عن الخلفية
+        self.main_frame = ctk.CTkFrame(
+            self, corner_radius=16,
+            fg_color=COLORS["bg_sidebar"],
+            border_width=0
+        )
+        self.main_frame.grid(row=0, column=0, sticky="nsew", padx=(12, 6), pady=12)
 
         # العنوان
         header = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        header.pack(fill="x", padx=20, pady=(15,5))
+        header.pack(fill="x", padx=20, pady=(18, 4))
 
-        self.main_title = ctk.CTkLabel(header, text=ar("الأجهزة المتصلة بالشبكة"), font=ctk.CTkFont(size=24, weight="bold"), text_color=COLORS["text_primary"])
+        self.main_title = ctk.CTkLabel(
+            header, text=ar("الأجهزة المتصلة بالشبكة"),
+            font=ctk.CTkFont(size=22, weight="bold"),
+            text_color=COLORS["text_primary"]
+        )
         self.main_title.pack(side="left")
 
-        self.device_count = ctk.CTkLabel(header, text="", font=ctk.CTkFont(size=13), text_color=COLORS["text_muted"])
+        self.device_count = ctk.CTkLabel(
+            header, text="",
+            font=ctk.CTkFont(size=12),
+            text_color=COLORS["text_muted"]
+        )
         self.device_count.pack(side="right")
 
         # معلومات الشبكة
         info_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        info_frame.pack(fill="x", padx=20, pady=(0,5))
+        info_frame.pack(fill="x", padx=20, pady=(0, 6))
 
         net = get_local_network()
-        self.network_label = ctk.CTkLabel(info_frame, text=f"🌐 Network: {net}", text_color=COLORS["text_secondary"], font=ctk.CTkFont(size=12))
+        self.network_label = ctk.CTkLabel(
+            info_frame, text=f"🌐  {net}",
+            text_color=COLORS["text_secondary"],
+            font=ctk.CTkFont(size=12)
+        )
         self.network_label.pack(side="left")
 
-        self.status_label = ctk.CTkLabel(info_frame, text="", text_color=COLORS["accent_green"], font=ctk.CTkFont(size=12))
+        self.status_label = ctk.CTkLabel(
+            info_frame, text="",
+            text_color=COLORS["accent_green"],
+            font=ctk.CTkFont(size=12)
+        )
         self.status_label.pack(side="right")
 
         # شريط التقدم
-        self.progress = ctk.CTkProgressBar(self.main_frame, mode="indeterminate", height=3, progress_color=COLORS["accent_blue"])
-        self.progress.pack(fill="x", padx=20, pady=(5,5))
+        self.progress = ctk.CTkProgressBar(
+            self.main_frame, mode="indeterminate",
+            height=3, progress_color=COLORS["accent_gold"],
+            fg_color=COLORS["bg_input"]
+        )
+        self.progress.pack(fill="x", padx=20, pady=(0, 6))
         self.progress.set(0)
 
-        # قائمة الأجهزة
-        self.devices_list = ctk.CTkScrollableFrame(self.main_frame, fg_color=COLORS["bg_dark"], corner_radius=10)
-        self.devices_list.pack(pady=5, padx=15, fill="both", expand=True)
+        # قائمة الأجهزة — حواف ناعمة، خلفية منفصلة
+        self.devices_list = ctk.CTkScrollableFrame(
+            self.main_frame,
+            fg_color=COLORS["bg_dark"],
+            corner_radius=12
+        )
+        self.devices_list.pack(pady=4, padx=14, fill="both", expand=True)
 
         # شريط الحالة
-        self.statusbar = ctk.CTkFrame(self.main_frame, height=30, fg_color=COLORS["bg_card"], corner_radius=8)
-        self.statusbar.pack(fill="x", padx=15, pady=(5,10))
+        self.statusbar = ctk.CTkFrame(
+            self.main_frame, height=32,
+            fg_color=COLORS["bg_input"],
+            corner_radius=10
+        )
+        self.statusbar.pack(fill="x", padx=14, pady=(6, 12))
 
-        self.statusbar_text = ctk.CTkLabel(self.statusbar, text=ar("جاهز"), font=ctk.CTkFont(size=11), text_color=COLORS["text_muted"])
-        self.statusbar_text.pack(side="left", padx=15)
+        self.statusbar_text = ctk.CTkLabel(
+            self.statusbar, text=ar("جاهز"),
+            font=ctk.CTkFont(size=11),
+            text_color=COLORS["text_muted"]
+        )
+        self.statusbar_text.pack(side="left", padx=14)
 
-        self.time_label = ctk.CTkLabel(self.statusbar, text="", font=ctk.CTkFont(size=11), text_color=COLORS["text_muted"])
-        self.time_label.pack(side="right", padx=15)
+        self.time_label = ctk.CTkLabel(
+            self.statusbar, text="",
+            font=ctk.CTkFont(size=11),
+            text_color=COLORS["text_muted"]
+        )
+        self.time_label.pack(side="right", padx=14)
 
-        # الرسالة الافتراضية
         self._show_welcome()
 
     def _show_welcome(self):
@@ -344,14 +384,13 @@ class NetworkSniperApp(ctk.CTk):
     def do_toggle_theme(self):
         new_mode = toggle_theme()
         self.sidebar.set_theme(new_mode)
-        # إعادة تطبيق الألوان على النافذة الرئيسية
         from config import COLORS
         self.configure(fg_color=COLORS["bg_dark"])
         self.main_frame.configure(fg_color=COLORS["bg_sidebar"])
         self.devices_list.configure(fg_color=COLORS["bg_dark"])
-        self.statusbar.configure(fg_color=COLORS["bg_card"])
+        self.statusbar.configure(fg_color=COLORS["bg_input"])
         self.sidebar.configure(fg_color=COLORS["bg_sidebar"])
-        # إعادة رسم الأجهزة لتطبيق الألوان الجديدة
+        self.progress.configure(fg_color=COLORS["bg_input"], progress_color=COLORS["accent_gold"])
         if self.devices:
             self._render_devices()
         log.info(f"تم تغيير الثيم إلى: {new_mode}")

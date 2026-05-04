@@ -14,55 +14,67 @@ SIDEBAR_WIDTH = 240
 
 # ================= الألوان =================
 COLORS_DARK = {
-    "bg_dark": "#0d1117",
-    "bg_sidebar": "#161b22",
-    "bg_card": "#1c2333",
-    "bg_card_hover": "#252d3d",
-    "bg_main": "#0d1117",
-    "bg_input": "#21262d",
-    "text_primary": "#e6edf3",
-    "text_secondary": "#8b949e",
-    "text_muted": "#484f58",
-    "accent_blue": "#58a6ff",
-    "accent_green": "#3fb950",
-    "accent_red": "#f85149",
-    "accent_orange": "#d29922",
-    "accent_purple": "#bc8cff",
-    "accent_cyan": "#39d2c0",
-    "status_online": "#3fb950",
-    "status_offline": "#f85149",
-    "status_disconnected": "#f85149",
-    "status_warning": "#d29922",
-    "hover_blue": "#4090e0",
-    "hover_green": "#2ea043",
-    "hover_red": "#da3633",
-    "hover_orange": "#bb8009",
+    # ── خلفيات ──────────────────────────────────────────
+    "bg_dark":        "#1D1C1C",   # خلفية الشاشة الرئيسية (Shadow)
+    "bg_sidebar":     "#262424",   # السايد بار والقوالب (Deep Charcoal)
+    "bg_card":        "#262424",   # بطاقات الأجهزة
+    "bg_card_hover":  "#2e2b2b",   # hover — أفتح بدرجة واحدة
+    "bg_main":        "#1D1C1C",
+    "bg_input":       "#2e2b2b",   # حقول الإدخال
+    # ── نصوص ────────────────────────────────────────────
+    "text_primary":   "#EEE5DA",   # نص رئيسي — دافئ غير أبيض
+    "text_secondary": "#b8a99a",   # نص ثانوي
+    "text_muted":     "#6e6460",   # نص خافت
+    # ── Accent موحد (الذهبي المطفأ) ─────────────────────
+    "accent_gold":    "#A88B68",   # اللون الرئيسي للأزرار والأيقونات
+    "hover_gold":     "#917558",   # hover للذهبي
+    # ── ألوان الحالة ─────────────────────────────────────
+    "accent_green":   "#5a9e6f",
+    "accent_red":     "#c0544a",
+    "accent_orange":  "#c49a3c",
+    "accent_blue":    "#5b8db8",
+    "accent_purple":  "#9b7ec8",
+    "accent_cyan":    "#4a9ead",
+    "status_online":  "#5a9e6f",
+    "status_offline": "#c0544a",
+    "status_disconnected": "#c0544a",
+    "status_warning": "#c49a3c",
+    "hover_green":    "#4a8e5f",
+    "hover_red":      "#a8443a",
+    "hover_orange":   "#a8842c",
+    "hover_blue":     "#4a7da8",
 }
 
 COLORS_LIGHT = {
-    "bg_dark":        "#f5f0eb",   # بيج فاتح دافئ — خلفية رئيسية
-    "bg_sidebar":     "#ede8e1",   # بيج أغمق قليلاً — الشريط الجانبي
-    "bg_card":        "#faf7f4",   # أبيض دافئ — بطاقات الأجهزة
-    "bg_card_hover":  "#ede8e1",   # بيج عند hover
-    "bg_main":        "#f5f0eb",
-    "bg_input":       "#e8e2da",   # بيج رمادي — حقول الإدخال
-    "text_primary":   "#2c2416",   # بني داكن — نص رئيسي
-    "text_secondary": "#6b5c47",   # بني متوسط — نص ثانوي
-    "text_muted":     "#a89880",   # بيج رمادي — نص خافت
-    "accent_blue":    "#4a7fa5",   # أزرق مائي هادئ
-    "accent_green":   "#4a7c59",   # أخضر زيتوني هادئ
-    "accent_red":     "#a0522d",   # بني محروق — تحذير
-    "accent_orange":  "#b8860b",   # ذهبي داكن
-    "accent_purple":  "#7b5ea7",   # بنفسجي هادئ
-    "accent_cyan":    "#4a7fa5",
-    "status_online":  "#4a7c59",
-    "status_offline": "#a0522d",
-    "status_disconnected": "#a0522d",
-    "status_warning": "#b8860b",
-    "hover_blue":     "#3a6f95",
-    "hover_green":    "#3a6c49",
-    "hover_red":      "#8b4513",
-    "hover_orange":   "#a07600",
+    # ── خلفيات ──────────────────────────────────────────
+    "bg_dark":        "#EEE5DA",   # خلفية الشاشة (Light Almond)
+    "bg_sidebar":     "#EBE7E0",   # السايد بار والقوالب (Highlight)
+    "bg_card":        "#EBE7E0",   # بطاقات الأجهزة — أفتح من الخلفية
+    "bg_card_hover":  "#E0DBD3",   # hover
+    "bg_main":        "#EEE5DA",
+    "bg_input":       "#DDD8D0",   # حقول الإدخال
+    # ── نصوص ────────────────────────────────────────────
+    "text_primary":   "#262424",   # نص رئيسي — تباين عالٍ
+    "text_secondary": "#5a4f47",   # نص ثانوي
+    "text_muted":     "#9a8f87",   # نص خافت
+    # ── Accent موحد (الذهبي المطفأ) ─────────────────────
+    "accent_gold":    "#A88B68",   # نفس الـ accent في الوضعين
+    "hover_gold":     "#917558",
+    # ── ألوان الحالة ─────────────────────────────────────
+    "accent_green":   "#3d7a52",
+    "accent_red":     "#9e3d35",
+    "accent_orange":  "#9a7020",
+    "accent_blue":    "#3d6e96",
+    "accent_purple":  "#7b5ea7",
+    "accent_cyan":    "#3d7e8a",
+    "status_online":  "#3d7a52",
+    "status_offline": "#9e3d35",
+    "status_disconnected": "#9e3d35",
+    "status_warning": "#9a7020",
+    "hover_green":    "#2d6a42",
+    "hover_red":      "#8e2d25",
+    "hover_orange":   "#8a6010",
+    "hover_blue":     "#2d5e86",
 }
 
 # الثيم الافتراضي

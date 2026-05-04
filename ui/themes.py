@@ -1,12 +1,11 @@
 """
-نظام الألوان والثيمات - داكن ونهاري
+نظام الثيمات — داكن وبيج
 """
 import customtkinter as ctk
 import config
 
 
 def setup_theme(mode=None):
-    """تهيئة الثيم"""
     if mode is None:
         mode = config.CURRENT_THEME
     if mode == "light":
@@ -21,7 +20,6 @@ def setup_theme(mode=None):
 
 
 def toggle_theme():
-    """تبديل بين الثيم الداكن والنهاري"""
     new_mode = "light" if config.CURRENT_THEME == "dark" else "dark"
     setup_theme(new_mode)
     return new_mode

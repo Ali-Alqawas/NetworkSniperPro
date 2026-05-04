@@ -2,5 +2,12 @@
   "theme": "dark",
   "network_range": "192.168.1.0/24",
   "colors_dark": {},
-  "colors_light": {}
+  "colors_light": {
+    "bg_dark": "#47484C",
+    "bg_main": "#47484C",
+    "bg_sidebar": "#E3D5BB",
+    "bg_card": "#E3D5BB",
+    "bg_card_hover": "#d4c6ac",
+    "bg_input": "#cabca2"
+  }
 }

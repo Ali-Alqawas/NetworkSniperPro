@@ -67,7 +67,7 @@ class Sidebar(ctk.CTkFrame):
 
         # ── المظهر ───────────────────────────────────────
         self._section(18, "المظهر")
-        self.btn_theme  = self._btn(19, "☀️  الوضع النهاري",  "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
+        self.btn_theme  = self._btn(19, "☀️  Theme",             "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
         self.btn_colors = self._btn(20, "🎨  اختيار الألوان", "bg_input", "bg_card_hover", "color_picker", secondary=True)
         ctk.CTkFrame(self, height=16, fg_color="transparent").grid(row=21, column=0)
 
@@ -143,5 +143,5 @@ class Sidebar(ctk.CTkFrame):
 
     def set_theme(self, mode):
         self.btn_theme.configure(
-            text=ar("🌙  الوضع الليلي" if mode == "light" else "☀️  الوضع النهاري")
+            text="🌙  Theme" if mode == "light" else "☀️  Theme"
         )

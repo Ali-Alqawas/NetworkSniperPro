@@ -30,9 +30,10 @@ class NetworkSniperApp(ctk.CTk):
 
         self.title(APP_TITLE)
         self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
+        self.minsize(820, 560)  # منع اختفاء المحتوى عند التصغير
         self.configure(fg_color=COLORS["bg_dark"])
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=0)
+        self.grid_columnconfigure(1, weight=0, minsize=250)  # sidebar لا يختفي
         self.grid_rowconfigure(0, weight=1)
         # المحركات
         self.scanner = NetworkScanner()
@@ -61,6 +62,8 @@ class NetworkSniperApp(ctk.CTk):
 
         # إصلاح عجلة الماوس
         self._bind_mousewheel(self.devices_list)
+
+        log.info("تم تشغيل التطبيق")
 
     def _apply_saved_theme(self):
         """تطبيق الثيم والألوان المحفوظة"""
@@ -101,8 +104,6 @@ class NetworkSniperApp(ctk.CTk):
                     child.bind(seq, handler, add="+")
                 except Exception:
                     pass
-
-        log.info("تم تشغيل التطبيق")
 
     def _build_sidebar(self):
         self.sidebar = Sidebar(self, callbacks={

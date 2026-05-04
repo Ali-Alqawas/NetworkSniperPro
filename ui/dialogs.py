@@ -165,107 +165,120 @@ class GameModeDialog(ctk.CTkToplevel):
     def __init__(self, master, devices, on_confirm=None):
         super().__init__(master)
         self.title("Game Mode")
-        self.geometry("460x600")
-        self.minsize(460, 560)
+        self.geometry("460x580")
+        self.minsize(440, 540)
         self.configure(fg_color=COLORS["bg_dark"])
-        self.resizable(True, True)
+        self.resizable(False, False)
         self.on_confirm = on_confirm
 
-        ctk.CTkLabel(self, text="🎮", font=ctk.CTkFont(size=36)).pack(pady=(14, 2))
-        ctk.CTkLabel(self, text=ar("وضع الألعاب"), font=ctk.CTkFont(size=18, weight="bold"),
+        # ── layout: header ثابت + scroll يمتد + footer ثابت ──
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        # Header
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", padx=20, pady=(14, 0))
+        ctk.CTkLabel(header, text="🎮", font=ctk.CTkFont(size=34)).pack()
+        ctk.CTkLabel(header, text=ar("وضع الألعاب"),
+                     font=ctk.CTkFont(size=17, weight="bold"),
                      text_color=COLORS["accent_green"]).pack()
 
-        # ── اختيار الجهاز ──────────────────────────────
-        ctk.CTkLabel(self, text=ar("الجهاز ذو الأولوية:"),
-                     font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]).pack(anchor="w", padx=24, pady=(10, 2))
+        # Scrollable body — يحتوي كل المحتوى
+        body = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        body.grid(row=1, column=0, sticky="nsew", padx=4, pady=4)
+        _bind_scroll(body)
 
-        scroll = ctk.CTkScrollableFrame(self, fg_color=COLORS["bg_sidebar"], height=130)
-        scroll.pack(fill="x", padx=20, pady=(0, 8))
-        _bind_scroll(scroll)
+        # اختيار الجهاز
+        ctk.CTkLabel(body, text=ar("الجهاز ذو الأولوية:"),
+                     font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]
+                     ).pack(anchor="w", padx=20, pady=(8, 2))
+
+        dev_frame = ctk.CTkFrame(body, fg_color=COLORS["bg_sidebar"], corner_radius=8)
+        dev_frame.pack(fill="x", padx=16, pady=(0, 8))
+
+        self.selected_ip = ctk.StringVar(value="")
         local = next((d for d in devices if d.get("is_local")), None)
         for dev in devices:
             ip = dev["ip"]
             hostname = dev.get("hostname", "")
-            # عرض IP + اسم فقط (بدون MAC أو vendor)
             label = ip
             if hostname and hostname not in ("غير معروف", "localhost"):
                 label += f"  —  {hostname}"
             if dev.get("is_local"):
                 label += ar("  ← جهازك")
-            ctk.CTkRadioButton(scroll, text=label, variable=self.selected_ip, value=ip,
+            ctk.CTkRadioButton(dev_frame, text=label, variable=self.selected_ip, value=ip,
                                font=ctk.CTkFont(size=12),
-                               text_color=COLORS["text_primary"]).pack(anchor="w", padx=10, pady=4)
+                               text_color=COLORS["text_primary"]
+                               ).pack(anchor="w", padx=12, pady=4)
 
         if local:
             self.selected_ip.set(local["ip"])
         elif devices:
             self.selected_ip.set(devices[0]["ip"])
 
-        # ── تحديد السرعة ───────────────────────────────
-        sep = ctk.CTkFrame(self, height=1, fg_color=COLORS["bg_input"])
-        sep.pack(fill="x", padx=20, pady=(4, 10))
+        # فاصل
+        ctk.CTkFrame(body, height=1, fg_color=COLORS["bg_input"]).pack(fill="x", padx=16, pady=(4, 10))
 
-        ctk.CTkLabel(self, text=ar("حد سرعة الآخرين (بناءً على سرعة خطك الفعلية):"),
-                     font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]).pack(anchor="w", padx=24)
+        # سرعة الخط
+        ctk.CTkLabel(body, text=ar("سرعة خطك الفعلية:"),
+                     font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]
+                     ).pack(anchor="w", padx=20, pady=(0, 4))
 
-        # حقل سرعة التحميل الفعلية
-        dl_frame = ctk.CTkFrame(self, fg_color="transparent")
-        dl_frame.pack(fill="x", padx=24, pady=(6, 2))
-        ctk.CTkLabel(dl_frame, text=ar("⬇️ سرعة تحميل خطك (Mbps):"),
-                     font=ctk.CTkFont(size=12), text_color=COLORS["text_secondary"],
-                     width=200, anchor="w").pack(side="left")
-        self._dl_var = ctk.StringVar(value="2.96")
-        ctk.CTkEntry(dl_frame, textvariable=self._dl_var, width=80, height=30,
-                     fg_color=COLORS["bg_input"], text_color=COLORS["text_primary"],
-                     font=ctk.CTkFont(size=12)).pack(side="left", padx=8)
+        speed_frame = ctk.CTkFrame(body, fg_color=COLORS["bg_sidebar"], corner_radius=8)
+        speed_frame.pack(fill="x", padx=16, pady=(0, 8))
 
-        # حقل سرعة الرفع الفعلية
-        ul_frame = ctk.CTkFrame(self, fg_color="transparent")
-        ul_frame.pack(fill="x", padx=24, pady=(2, 8))
-        ctk.CTkLabel(ul_frame, text=ar("⬆️ سرعة رفع خطك (Mbps):"),
-                     font=ctk.CTkFont(size=12), text_color=COLORS["text_secondary"],
-                     width=200, anchor="w").pack(side="left")
-        self._ul_var = ctk.StringVar(value="1.09")
-        ctk.CTkEntry(ul_frame, textvariable=self._ul_var, width=80, height=30,
-                     fg_color=COLORS["bg_input"], text_color=COLORS["text_primary"],
-                     font=ctk.CTkFont(size=12)).pack(side="left", padx=8)
+        for label_txt, var_default, attr in [
+            ("⬇️  تحميل (Mbps):", "2.96", "_dl_var"),
+            ("⬆️  رفع (Mbps):",   "1.09", "_ul_var"),
+        ]:
+            row = ctk.CTkFrame(speed_frame, fg_color="transparent")
+            row.pack(fill="x", padx=12, pady=5)
+            ctk.CTkLabel(row, text=ar(label_txt), font=ctk.CTkFont(size=12),
+                         text_color=COLORS["text_secondary"], width=180, anchor="w").pack(side="left")
+            var = ctk.StringVar(value=var_default)
+            setattr(self, attr, var)
+            ctk.CTkEntry(row, textvariable=var, width=80, height=28,
+                         fg_color=COLORS["bg_input"], text_color=COLORS["text_primary"],
+                         font=ctk.CTkFont(size=12)).pack(side="left", padx=8)
 
-        # Slider للحد المخصص للآخرين (% من السرعة الكلية)
-        ctk.CTkLabel(self, text=ar("نسبة ما يحصل عليه الآخرون:"),
-                     font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]).pack(anchor="w", padx=24)
+        # Slider
+        ctk.CTkLabel(body, text=ar("نسبة ما يحصل عليه الآخرون:"),
+                     font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]
+                     ).pack(anchor="w", padx=20, pady=(0, 4))
 
-        slider_frame = ctk.CTkFrame(self, fg_color="transparent")
-        slider_frame.pack(fill="x", padx=24, pady=(4, 2))
+        slider_outer = ctk.CTkFrame(body, fg_color=COLORS["bg_sidebar"], corner_radius=8)
+        slider_outer.pack(fill="x", padx=16, pady=(0, 4))
+
+        slider_row = ctk.CTkFrame(slider_outer, fg_color="transparent")
+        slider_row.pack(fill="x", padx=12, pady=8)
 
         self._pct_var = ctk.IntVar(value=20)
-        self._pct_lbl = ctk.CTkLabel(slider_frame, text="20%",
+        self._pct_lbl = ctk.CTkLabel(slider_row, text="20%",
                                       font=ctk.CTkFont(size=13, weight="bold"),
                                       text_color=COLORS["accent_orange"], width=45)
         self._pct_lbl.pack(side="right")
-
-        ctk.CTkSlider(slider_frame, from_=5, to=50, number_of_steps=45,
+        ctk.CTkSlider(slider_row, from_=5, to=50, number_of_steps=45,
                       variable=self._pct_var,
                       button_color=COLORS["accent_orange"],
                       progress_color=COLORS["accent_orange"],
                       command=self._on_slider).pack(side="left", fill="x", expand=True)
 
-        self._calc_lbl = ctk.CTkLabel(self, text="",
+        self._calc_lbl = ctk.CTkLabel(body, text="",
                                        font=ctk.CTkFont(size=11),
-                                       text_color=COLORS["text_muted"])
-        self._calc_lbl.pack(pady=(2, 4))
-        self._update_calc()
+                                       text_color=COLORS["accent_orange"])
+        self._calc_lbl.pack(pady=(2, 8))
 
-        # تحديث الحساب عند تغيير السرعة
         self._dl_var.trace_add("write", lambda *_: self._update_calc())
         self._ul_var.trace_add("write", lambda *_: self._update_calc())
+        self._update_calc()
 
-        # ── أزرار ──────────────────────────────────────
-        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.pack(pady=10)
-        ctk.CTkButton(btn_frame, text=ar("إلغاء"), width=120, height=34,
+        # Footer ثابت
+        footer = ctk.CTkFrame(self, fg_color="transparent")
+        footer.grid(row=2, column=0, pady=(4, 12))
+        ctk.CTkButton(footer, text=ar("إلغاء"), width=120, height=34,
                       fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"],
                       command=self.destroy).pack(side="left", padx=8)
-        ctk.CTkButton(btn_frame, text=ar("🎮 تفعيل"), width=160, height=34,
+        ctk.CTkButton(footer, text=ar("🎮 تفعيل"), width=160, height=34,
                       fg_color=COLORS["accent_green"], hover_color=COLORS["hover_green"],
                       font=ctk.CTkFont(size=13, weight="bold"),
                       command=self._confirm).pack(side="left", padx=8)
@@ -284,7 +297,7 @@ class GameModeDialog(ctk.CTkToplevel):
             dl_limit = max(0.1, round(dl * pct, 2))
             ul_limit = max(0.1, round(ul * pct, 2))
             self._calc_lbl.configure(
-                text=ar(f"الآخرون سيحصلون على: ⬇️ {dl_limit} Mbps  ⬆️ {ul_limit} Mbps")
+                text=ar(f"الآخرون: ⬇️ {dl_limit} Mbps  ⬆️ {ul_limit} Mbps")
             )
         except (ValueError, ZeroDivisionError):
             self._calc_lbl.configure(text=ar("أدخل أرقاماً صحيحة"))
@@ -297,7 +310,6 @@ class GameModeDialog(ctk.CTkToplevel):
             dl = float(self._dl_var.get())
             ul = float(self._ul_var.get())
             pct = self._pct_var.get() / 100
-            # تحويل إلى kbit (tc يعمل بـ kbit)
             dl_kbit = max(64, int(dl * pct * 1000))
             ul_kbit = max(64, int(ul * pct * 1000))
         except ValueError:

@@ -5,27 +5,29 @@ from config import COLORS
 from ui.smart_scroll import SmartScrollFrame
 
 
-class Sidebar(ctk.CTkFrame):
+class Sidebar(SmartScrollFrame):
+    """
+    الـ Sidebar نفسه هو SmartScrollFrame:
+    - corner_radius صحيح مباشرة
+    - fg_color صحيح بدون طبقات
+    - عجلة الماوس تعمل تلقائياً
+    """
     def __init__(self, master, callbacks=None, **kwargs):
-        super().__init__(master, width=250, corner_radius=16,
-                         fg_color=COLORS["bg_sidebar"], **kwargs)
+        super().__init__(
+            master,
+            width=250,
+            corner_radius=16,
+            fg_color=COLORS["bg_sidebar"],
+            scrollbar_button_color=COLORS["bg_input"],
+            scrollbar_button_hover_color=COLORS["bg_card_hover"],
+            **kwargs
+        )
         self.callbacks = callbacks or {}
-        self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self._build()
 
     def _build(self):
-        # SmartScrollFrame بنفس corner_radius وبدون border
-        self._scroll = SmartScrollFrame(
-            self, fg_color="transparent",
-            corner_radius=16,
-            scrollbar_button_color=COLORS["bg_input"],
-            scrollbar_button_hover_color=COLORS["bg_card_hover"]
-        )
-        self._scroll.grid(row=0, column=0, sticky="nsew")
-        self._scroll.grid_columnconfigure(0, weight=1)
-
-        s = self._scroll  # اختصار
+        s = self  # المحتوى مباشرة في الـ Sidebar
 
         # ── الشعار ──────────────────────────────────────
         lf = ctk.CTkFrame(s, fg_color="transparent")
@@ -84,8 +86,8 @@ class Sidebar(ctk.CTkFrame):
 
         # ── المظهر ───────────────────────────────────────
         self._sec(s, 19, "المظهر")
-        self.btn_theme  = self._btn(s, 20, "☀️  Theme",           "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
-        self.btn_colors = self._btn(s, 21, "🎨  اختيار الألوان",  "bg_input", "bg_card_hover", "color_picker", secondary=True)
+        self.btn_theme  = self._btn(s, 20, "☀️  Theme",          "bg_input", "bg_card_hover", "toggle_theme", secondary=True)
+        self.btn_colors = self._btn(s, 21, "🎨  اختيار الألوان", "bg_input", "bg_card_hover", "color_picker", secondary=True)
         ctk.CTkFrame(s, height=12, fg_color="transparent").grid(row=22, column=0)
 
     # ── helpers ──────────────────────────────────────────
@@ -114,8 +116,10 @@ class Sidebar(ctk.CTkFrame):
 
     # ── theme ────────────────────────────────────────────
     def refresh_theme(self):
-        self.configure(fg_color=COLORS["bg_sidebar"])
-        self._scroll.configure(
+        # تحديث الـ _parent_frame الداخلي للـ SmartScrollFrame
+        self._parent_frame.configure(fg_color=COLORS["bg_sidebar"])
+        self._parent_canvas.configure(bg=self._apply_appearance_mode(COLORS["bg_sidebar"]))
+        self.configure(
             scrollbar_button_color=COLORS["bg_input"],
             scrollbar_button_hover_color=COLORS["bg_card_hover"]
         )

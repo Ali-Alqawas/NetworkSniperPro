@@ -447,7 +447,6 @@ class NetworkSniperApp(ctk.CTk):
             self.devices_list.configure(fg_color=bg_hex)
             self.statusbar.configure(fg_color=config.COLORS["bg_input"])
             self.progress.configure(fg_color=config.COLORS["bg_input"])
-            self.sidebar.configure(fg_color=card_hex)
             self.sidebar.refresh_theme()
             if self.devices:
                 self._render_devices()

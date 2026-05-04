@@ -1,55 +1,57 @@
 """
-SmartScrollFrame — CTkScrollableFrame محسّن:
-- عجلة الماوس تعمل على Linux (Button-4/5) + Windows/Mac (MouseWheel)
-- الـ scrollbar يظهر فقط عند وجود محتوى زائد (ديناميكي)
-- لا تعارض مع النظام المدمج
+SmartScrollFrame — CTkScrollableFrame محسّن للـ Linux
+- عجلة الماوس تعمل على Linux (Button-4/5)
+- scrollbar يظهر فقط عند الحاجة (بدون configure loop)
 """
 import sys
 import customtkinter as ctk
 
 
 class SmartScrollFrame(ctk.CTkScrollableFrame):
-    """
-    CTkScrollableFrame مع:
-    1. دعم Linux mousewheel (Button-4/5)
-    2. scrollbar يختفي تلقائياً عند عدم الحاجة
-    """
 
     def __init__(self, master, **kwargs):
-        # إخفاء الـ scrollbar افتراضياً — نتحكم فيه يدوياً
         super().__init__(master, **kwargs)
+        self._sb_visible = True
+        self._sb_check_id = None
 
-        # Linux: ربط Button-4/5 على مستوى الـ canvas مباشرة
+        # Linux: Button-4/5 على الـ canvas والـ frame
         if sys.platform.startswith("linux"):
-            self._parent_canvas.bind("<Button-4>", self._linux_scroll_up,   add="+")
-            self._parent_canvas.bind("<Button-5>", self._linux_scroll_down, add="+")
-            self.bind("<Button-4>", self._linux_scroll_up,   add="+")
-            self.bind("<Button-5>", self._linux_scroll_down, add="+")
+            for widget in (self._parent_canvas, self):
+                widget.bind("<Button-4>", self._scroll_up,   add="+")
+                widget.bind("<Button-5>", self._scroll_down, add="+")
 
-        # مراقبة تغيير المحتوى لإظهار/إخفاء الـ scrollbar
-        self.bind("<Configure>", self._update_scrollbar_visibility, add="+")
-        self._parent_canvas.bind("<Configure>", self._update_scrollbar_visibility, add="+")
+        # فحص الـ scrollbar بعد رسم المحتوى (مرة واحدة بعد idle)
+        self.bind("<Configure>", self._schedule_sb_check, add="+")
+        self._parent_canvas.bind("<Configure>", self._schedule_sb_check, add="+")
 
-        # إخفاء الـ scrollbar في البداية
-        self._scrollbar.grid_remove()
-
-    def _linux_scroll_up(self, event):
+    def _scroll_up(self, event):
         if self._parent_canvas.yview() != (0.0, 1.0):
             self._parent_canvas.yview_scroll(-1, "units")
         return "break"
 
-    def _linux_scroll_down(self, event):
+    def _scroll_down(self, event):
         if self._parent_canvas.yview() != (0.0, 1.0):
             self._parent_canvas.yview_scroll(1, "units")
         return "break"
 
-    def _update_scrollbar_visibility(self, event=None):
-        """إظهار الـ scrollbar فقط عند وجود محتوى يتجاوز الحاوية"""
+    def _schedule_sb_check(self, event=None):
+        """جدولة الفحص بعد انتهاء كل أحداث الـ configure الحالية"""
+        if self._sb_check_id:
+            try:
+                self.after_cancel(self._sb_check_id)
+            except Exception:
+                pass
+        self._sb_check_id = self.after(50, self._check_scrollbar)
+
+    def _check_scrollbar(self):
+        self._sb_check_id = None
         try:
-            yview = self._parent_canvas.yview()
-            if yview == (0.0, 1.0):
-                self._scrollbar.grid_remove()
-            else:
+            needs = self._parent_canvas.yview() != (0.0, 1.0)
+            if needs and not self._sb_visible:
                 self._scrollbar.grid()
+                self._sb_visible = True
+            elif not needs and self._sb_visible:
+                self._scrollbar.grid_remove()
+                self._sb_visible = False
         except Exception:
             pass

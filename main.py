@@ -44,7 +44,14 @@ def _release_lock():
 
 def main():
     if not _acquire_lock():
-        print("⚠️  التطبيق يعمل بالفعل.")
+        # التطبيق يعمل — أرسل إشارة لإظهاره
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(("127.0.0.1", _LOCK_PORT))
+            s.send(b"show")
+            s.close()
+        except Exception:
+            pass
         sys.exit(0)
 
     log.info("=" * 50)
@@ -62,6 +69,32 @@ def main():
 
     from ui.app import NetworkSniperApp
     app = NetworkSniperApp()
+
+    # استقبال إشارة "show" من نسخة ثانية
+    def _listen_for_show():
+        import threading
+        def _accept():
+            while True:
+                try:
+                    conn, _ = _lock_socket.accept()
+                    data = conn.recv(16)
+                    conn.close()
+                    if data == b"show":
+                        app.after(0, _bring_to_front)
+                except Exception:
+                    break
+        threading.Thread(target=_accept, daemon=True).start()
+
+    def _bring_to_front():
+        if app.state() == "iconic":
+            app.deiconify()
+        else:
+            app.deiconify()
+            app.lift()
+            app.focus_force()
+
+    _listen_for_show()
+
     try:
         app.mainloop()
     finally:

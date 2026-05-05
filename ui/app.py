@@ -30,12 +30,17 @@ class NetworkSniperApp(ctk.CTk):
         self._apply_saved_theme()
 
         self.title(APP_TITLE)
-        self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
-        self.minsize(820, 560)  # منع اختفاء المحتوى عند التصغير
+        self.minsize(820, 560)
         self.configure(fg_color=COLORS["bg_dark"])
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=0, minsize=250)  # sidebar لا يختفي
+        self.grid_columnconfigure(1, weight=0, minsize=250)
         self.grid_rowconfigure(0, weight=1)
+        # توسيط النافذة الرئيسية
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        x = (sw - WINDOW_WIDTH) // 2
+        y = (sh - WINDOW_HEIGHT) // 2
+        self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{x}+{y}")
         # المحركات
         self.scanner = NetworkScanner()
         self.disconnector = Disconnector()
@@ -342,8 +347,6 @@ class NetworkSniperApp(ctk.CTk):
         self._set_status(msg, color)
         if active and priority_ip and self.devices:
             GameMonitorDialog(self, priority_ip, self.devices, dl_kbit, ul_kbit)
-        elif not active:
-            AlertDialog(self, "Game Mode", msg, "info")
 
     # ====== اختبار السرعة ======
     def start_speed_test(self):

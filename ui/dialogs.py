@@ -16,6 +16,16 @@ def _safe_grab(dialog):
         pass
 
 
+def _center(dialog):
+    """توسيط النافذة على الشاشة"""
+    dialog.update_idletasks()
+    w = dialog.winfo_width()
+    h = dialog.winfo_height()
+    sw = dialog.winfo_screenwidth()
+    sh = dialog.winfo_screenheight()
+    dialog.geometry(f"+{(sw - w) // 2}+{(sh - h) // 2}")
+
+
     """ربط عجلة الماوس بـ CTkScrollableFrame على Linux/Windows/Mac"""
     def _wheel(e):
         if e.num == 4:
@@ -60,7 +70,7 @@ class DisconnectDialog(ctk.CTkToplevel):
         ctk.CTkButton(btn_frame, text=ar("إلغاء"), width=120, fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"], command=self.destroy).pack(side="left", padx=10)
         ctk.CTkButton(btn_frame, text=ar("✂️ قطع الاتصال"), width=120, fg_color=COLORS["accent_red"], hover_color=COLORS["hover_red"], command=self._confirm).pack(side="left", padx=10)
 
-        self.after(100, lambda: _safe_grab(self))
+        self.after(100, lambda: (_center(self), _safe_grab(self)))
 
     def _confirm(self):
         dur = DISCONNECT_DURATIONS.get(self.duration_var.get(), 300)
@@ -127,7 +137,7 @@ class PortResultDialog(ctk.CTkToplevel):
         ctk.CTkButton(self, text=ar("إغلاق"), width=120,
                       fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"],
                       command=self.destroy).pack(pady=12)
-        self.after(100, lambda: _safe_grab(self))
+        self.after(100, lambda: (_center(self), _safe_grab(self)))
 
 
 class SpeedResultDialog(ctk.CTkToplevel):
@@ -156,7 +166,7 @@ class SpeedResultDialog(ctk.CTkToplevel):
             ctk.CTkLabel(mf, text=value, font=ctk.CTkFont(size=16, weight="bold"), text_color=color).pack(side="right")
 
         ctk.CTkButton(self, text=ar("إغلاق"), width=120, fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"], command=self.destroy).pack(pady=15)
-        self.after(100, lambda: _safe_grab(self))
+        self.after(100, lambda: (_center(self), _safe_grab(self)))
 
 
 class GameModeDialog(ctk.CTkToplevel):
@@ -281,7 +291,7 @@ class GameModeDialog(ctk.CTkToplevel):
                       font=ctk.CTkFont(size=13, weight="bold"),
                       command=self._confirm).pack(side="left", padx=8)
 
-        self.after(100, lambda: _safe_grab(self))
+        self.after(100, lambda: (_center(self), _safe_grab(self)))
 
     def _on_slider(self, val):
         self._pct_lbl.configure(text=f"{int(val)}%")
@@ -396,7 +406,7 @@ class GameMonitorDialog(ctk.CTkToplevel):
                       command=self._close).pack(pady=4)
 
         self.protocol("WM_DELETE_WINDOW", self._close)
-        self.after(100, lambda: _safe_grab(self))
+        self.after(100, lambda: (_center(self), _safe_grab(self)))
         threading.Thread(target=self._update_loop, daemon=True).start()
 
     def _ping_once(self, ip):
@@ -463,7 +473,7 @@ class AlertDialog(ctk.CTkToplevel):
         ctk.CTkLabel(self, text=message, font=ctk.CTkFont(size=14), text_color=colors.get(alert_type, COLORS["text_primary"]), wraplength=350).pack(pady=10)
         ctk.CTkButton(self, text=ar("حسناً"), width=100, fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"], command=self.destroy).pack(pady=10)
 
-        self.after(100, lambda: _safe_grab(self))
+        self.after(100, lambda: (_center(self), _safe_grab(self)))
 
 
 class ColorPickerDialog(ctk.CTkToplevel):
@@ -567,7 +577,7 @@ class ColorPickerDialog(ctk.CTkToplevel):
         for name, hex_color, emoji in PALETTE_CARD:
             self._color_row(card_scroll, name, hex_color, emoji, self._sel_card)
 
-        self.after(100, lambda: _safe_grab(self))
+        self.after(100, lambda: (_center(self), _safe_grab(self)))
 
     def _color_row(self, parent, name, hex_color, emoji, var):
         """صف لون واحد مع مربع اللون والاسم"""

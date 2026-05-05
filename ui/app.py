@@ -3,8 +3,10 @@ import customtkinter as ctk
 from datetime import datetime
 from utils.arabic import ar
 from utils.network import get_local_network, get_gateway_ip, is_nmap_installed, is_root
-from utils.exporter import export_csv, export_pdf
+from utils.exporter import export_csv, export_pdf, export_json
 from utils.logger import log
+import utils.settings as settings
+import utils.history as history
 from core.scanner import NetworkScanner
 from core.disconnector import Disconnector
 from core.port_scanner import PortScanner
@@ -14,6 +16,7 @@ from core.monitor import NetworkMonitor
 from ui.themes import setup_theme, toggle_theme
 from ui.sidebar import Sidebar
 from ui.device_card import DeviceCard
+from ui.smart_scroll import SmartScrollFrame
 from ui.dialogs import DisconnectDialog, PortResultDialog, SpeedResultDialog, AlertDialog, GameModeDialog, GameMonitorDialog, ColorPickerDialog
 from config import COLORS, APP_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT
 
@@ -21,20 +24,30 @@ from config import COLORS, APP_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT
 class NetworkSniperApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        setup_theme()
+
+        # تحميل الإعدادات المحفوظة
+        self._settings = settings.load()
+        self._apply_saved_theme()
+
         self.title(APP_TITLE)
-        self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
+        self.minsize(820, 560)
         self.configure(fg_color=COLORS["bg_dark"])
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=0)
+        self.grid_columnconfigure(1, weight=0, minsize=250)
         self.grid_rowconfigure(0, weight=1)
+        # توسيط النافذة الرئيسية
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        x = (sw - WINDOW_WIDTH) // 2
+        y = (sh - WINDOW_HEIGHT) // 2
+        self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{x}+{y}")
         # المحركات
         self.scanner = NetworkScanner()
         self.disconnector = Disconnector()
         self.port_scanner = PortScanner()
         self.game_mode = GameMode()
         self.speed_tester = SpeedTester()
-        self.monitor = NetworkMonitor(NetworkScanner())
+        self.monitor = NetworkMonitor(self.scanner)
 
         # البيانات
         self.devices = []
@@ -45,10 +58,29 @@ class NetworkSniperApp(ctk.CTk):
         self._build_sidebar()
         self._build_main_area()
 
+        # تحميل النطاق المحفوظ فقط إذا كان ينتمي للشبكة الحالية
+        saved_net = self._settings.get("network_range", "")
+        if saved_net and self._is_same_network(saved_net, get_local_network()):
+            self.sidebar.set_network_range(saved_net)
+
         # تنظيف عند الإغلاق
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        # اعتراض زر التصغير — نستخدم withdraw لأن iconify لا يعمل على كل بيئات Linux
+        self.protocol("WM_ICONIFY_WINDOW", self._hide_window)
+        self._is_hidden = False
 
         log.info("تم تشغيل التطبيق")
+
+    def _apply_saved_theme(self):
+        """تطبيق الثيم والألوان المحفوظة"""
+        import config
+        saved_theme = self._settings.get("theme", "dark")
+        for palette_key, config_palette in [("colors_dark", config.COLORS_DARK),
+                                             ("colors_light", config.COLORS_LIGHT)]:
+            saved_colors = self._settings.get(palette_key, {})
+            if saved_colors:
+                config_palette.update(saved_colors)
+        setup_theme(saved_theme)
 
     def _build_sidebar(self):
         self.sidebar = Sidebar(self, callbacks={
@@ -58,6 +90,7 @@ class NetworkSniperApp(ctk.CTk):
             "game_mode": self.toggle_game_mode,
             "speed_test": self.start_speed_test,
             "export_csv": self.do_export_csv,
+            "export_json": self.do_export_json,
             "export_pdf": self.do_export_pdf,
             "toggle_theme": self.do_toggle_theme,
             "color_picker": self.open_color_picker,
@@ -120,8 +153,8 @@ class NetworkSniperApp(ctk.CTk):
         self.progress.pack(fill="x", padx=20, pady=(0, 6))
         self.progress.set(0)
 
-        # قائمة الأجهزة — حواف ناعمة، خلفية منفصلة
-        self.devices_list = ctk.CTkScrollableFrame(
+        # قائمة الأجهزة
+        self.devices_list = SmartScrollFrame(
             self.main_frame,
             fg_color=COLORS["bg_dark"],
             corner_radius=12
@@ -187,8 +220,13 @@ class NetworkSniperApp(ctk.CTk):
 
         ctk.CTkLabel(self.devices_list, text=ar("🔍 جاري تمشيط الشبكة، يرجى الانتظار..."), font=ctk.CTkFont(size=16), text_color=COLORS["accent_blue"]).pack(pady=100)
 
-        net = get_local_network()
-        self.network_label.configure(text=f"🌐 Network: {net}")
+        # استخدام النطاق المدخل يدوياً أو الاكتشاف التلقائي
+        custom = self.sidebar.get_network_range()
+        from utils.network import validate_network_range
+        net = custom if custom and validate_network_range(custom) else get_local_network()
+        # حفظ النطاق المستخدم
+        settings.set("network_range", net)
+        self.network_label.configure(text=f"🌐 {net}")
         self.scanner.scan(net, on_complete=lambda d: self.after(0, lambda: self._on_scan_complete(d)), on_error=lambda e: self.after(0, lambda: self._on_scan_error(e)), on_progress=lambda m: self.after(0, lambda: self._set_status(m, COLORS["accent_blue"])))
 
     def stop_scan(self):
@@ -205,6 +243,9 @@ class NetworkSniperApp(ctk.CTk):
         self.progress.set(0)
         self.sidebar.set_scanning(False)
         self.devices = devices
+        # حفظ في قاعدة البيانات
+        for dev in devices:
+            history.upsert_device(dev)
         self._render_devices()
         now = datetime.now().strftime("%H:%M:%S")
         self._set_status(f"آخر فحص: {now} — {len(devices)} جهاز", COLORS["accent_green"])
@@ -228,7 +269,7 @@ class NetworkSniperApp(ctk.CTk):
             return
         for dev in self.devices:
             is_disc = self.disconnector.is_disconnected(dev["ip"])
-            card = DeviceCard(self.devices_list, dev, on_disconnect=self._ask_disconnect, on_reconnect=self._do_reconnect, on_port_scan=self._do_port_scan, on_copy_mac=self._copy_mac, is_disconnected=is_disc)
+            card = DeviceCard(self.devices_list, dev, on_disconnect=self._ask_disconnect, on_reconnect=self._do_reconnect, on_port_scan=self._do_port_scan, on_copy_mac=self._copy_mac, is_disconnected=is_disc, on_rename=self._render_devices)
             card.pack(fill="x", pady=4, padx=5)
 
     # ====== قطع الاتصال ======
@@ -292,27 +333,23 @@ class NetworkSniperApp(ctk.CTk):
                 self.after(0, lambda: self._game_status(active, msg))
             self.game_mode.deactivate(on_status=on_status)
         else:
-            # إذا لا توجد أجهزة، استخدم جهازك مباشرة
             if not self.devices:
                 from utils.network import get_local_ip
-                self._start_game_mode(get_local_ip())
+                self._start_game_mode(get_local_ip(), 512, 256)
             else:
                 GameModeDialog(self, self.devices, on_confirm=self._start_game_mode)
 
-    def _start_game_mode(self, priority_ip):
+    def _start_game_mode(self, priority_ip, dl_kbit=512, ul_kbit=256):
         def on_status(active, msg):
-            self.after(0, lambda: self._game_status(active, msg, priority_ip))
-        self.game_mode.activate(priority_ip, on_status=on_status)
+            self.after(0, lambda: self._game_status(active, msg, priority_ip, dl_kbit, ul_kbit))
+        self.game_mode.activate(priority_ip, on_status=on_status, dl_kbit=dl_kbit, ul_kbit=ul_kbit)
 
-    def _game_status(self, active, msg, priority_ip=None):
+    def _game_status(self, active, msg, priority_ip=None, dl_kbit=512, ul_kbit=256):
         self.sidebar.set_game_mode(active)
         color = COLORS["accent_green"] if active else COLORS["text_muted"]
         self._set_status(msg, color)
         if active and priority_ip and self.devices:
-            # افتح نافذة المعلومات الحية مباشرة
-            GameMonitorDialog(self, priority_ip, self.devices)
-        elif not active:
-            AlertDialog(self, "Game Mode", msg, "info")
+            GameMonitorDialog(self, priority_ip, self.devices, dl_kbit, ul_kbit)
 
     # ====== اختبار السرعة ======
     def start_speed_test(self):
@@ -350,7 +387,11 @@ class NetworkSniperApp(ctk.CTk):
             self.sidebar.set_monitoring(False)
             self._set_status("تم إيقاف المراقبة", COLORS["text_muted"])
         else:
-            net = get_local_network()
+            # استخدم النطاق المدخل يدوياً أو الاكتشاف التلقائي (نفس منطق start_scan)
+            custom = self.sidebar.get_network_range()
+            from utils.network import validate_network_range
+            net = custom if custom and validate_network_range(custom) else get_local_network()
+            self.network_label.configure(text=f"🌐 {net}")
             if self.devices:
                 self.monitor.set_initial_devices(self.devices)
             def on_new(dev):
@@ -367,11 +408,24 @@ class NetworkSniperApp(ctk.CTk):
     def _on_new_device(self, dev):
         ip = dev.get("ip", "?")
         vendor = dev.get("vendor", "?")
+        hostname = dev.get("hostname", "")
+        history.upsert_device(dev)
+        history.log_event(dev.get("mac",""), ip, "connected")
         self._set_status(f"🆕 جهاز جديد: {ip} ({vendor})", COLORS["accent_cyan"])
+        # إشعار نظام
+        name = hostname if hostname and hostname != "غير معروف" else vendor
+        try:
+            import subprocess as _sp
+            _sp.Popen(["notify-send", "-i", "network-wireless",
+                       "Network Sniper Pro", f"جهاز جديد: {ip}\n{name}"],
+                      stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+        except Exception:
+            pass
         AlertDialog(self, "New Device", f"🆕 {ar('جهاز جديد اتصل بالشبكة')}\nIP: {ip}\nVendor: {vendor}", "new_device")
 
     def _on_device_left(self, dev):
         ip = dev.get("ip", "?")
+        history.log_event(dev.get("mac",""), ip, "disconnected")
         self._set_status(f"📴 جهاز غادر: {ip}", COLORS["accent_orange"])
 
     def _on_monitor_update(self, devs):
@@ -388,38 +442,58 @@ class NetworkSniperApp(ctk.CTk):
         """تطبيق الألوان على الثيم المحدد (dark أو light)"""
         import config
         palette = config.COLORS_DARK if target == "dark" else config.COLORS_LIGHT
+
+        # في الـ light mode الخلفية فاتحة والقوالب أفتح — نعكس المنطق
+        if target == "light":
+            hover   = self._adjust(card_hex, -12)   # أغمق قليلاً للـ hover
+            inp     = self._adjust(card_hex, -20)    # أغمق للـ input
+        else:
+            hover   = self._adjust(card_hex, -15)
+            inp     = self._adjust(card_hex, -25)
+
         palette["bg_dark"]       = bg_hex
         palette["bg_main"]       = bg_hex
         palette["bg_sidebar"]    = card_hex
         palette["bg_card"]       = card_hex
-        palette["bg_card_hover"] = self._darken(card_hex, 15)
-        palette["bg_input"]      = self._darken(card_hex, 25)
+        palette["bg_card_hover"] = hover
+        palette["bg_input"]      = inp
 
-        # إذا كان الثيم الحالي هو المستهدف — طبّق فوراً على الواجهة
         if target == config.CURRENT_THEME:
             config.COLORS.update(palette)
             self.configure(fg_color=bg_hex)
             self.main_frame.configure(fg_color=card_hex)
             self.devices_list.configure(fg_color=bg_hex)
-            self.statusbar.configure(fg_color=config.COLORS["bg_input"])
-            self.progress.configure(fg_color=config.COLORS["bg_input"])
-            self.sidebar.configure(fg_color=card_hex)
+            self.statusbar.configure(fg_color=inp)
+            self.progress.configure(fg_color=inp)
             self.sidebar.refresh_theme()
             if self.devices:
                 self._render_devices()
             else:
                 self._show_welcome()
+
         log.info(f"تم تطبيق ألوان مخصصة على {target}: bg={bg_hex} card={card_hex}")
+        settings.set(f"colors_{target}", {
+            k: palette[k] for k in
+            ("bg_dark", "bg_main", "bg_sidebar", "bg_card", "bg_card_hover", "bg_input")
+        })
 
     @staticmethod
-    def _darken(hex_color, amount):
-        """تغميق لون hex بمقدار معين"""
+    def _adjust(hex_color, amount):
+        """تعديل سطوع لون hex — سالب = أغمق، موجب = أفتح"""
         hex_color = hex_color.lstrip("#")
-        r, g, b = int(hex_color[0:2],16), int(hex_color[2:4],16), int(hex_color[4:6],16)
-        r, g, b = max(0,r-amount), max(0,g-amount), max(0,b-amount)
+        r = max(0, min(255, int(hex_color[0:2], 16) + amount))
+        g = max(0, min(255, int(hex_color[2:4], 16) + amount))
+        b = max(0, min(255, int(hex_color[4:6], 16) + amount))
         return f"#{r:02x}{g:02x}{b:02x}"
 
-    # ====== تبديل الثيم ======
+    @staticmethod
+    def _is_same_network(saved: str, current: str) -> bool:
+        """تحقق أن النطاق المحفوظ ينتمي لنفس الشبكة الحالية"""
+        try:
+            import ipaddress
+            return ipaddress.IPv4Network(saved, strict=False) == ipaddress.IPv4Network(current, strict=False)
+        except Exception:
+            return False
     def do_toggle_theme(self):
         new_mode = toggle_theme()
         from config import COLORS
@@ -433,6 +507,7 @@ class NetworkSniperApp(ctk.CTk):
         self.main_title.configure(text_color=COLORS["text_primary"])
         self.device_count.configure(text_color=COLORS["text_muted"])
         self.network_label.configure(text_color=COLORS["text_secondary"])
+        self.status_label.configure(text_color=COLORS["accent_green"])
         self.statusbar_text.configure(text_color=COLORS["text_muted"])
         self.time_label.configure(text_color=COLORS["text_muted"])
         # ── السايد بار (يشمل اسم التطبيق والأزرار) ──────
@@ -444,6 +519,7 @@ class NetworkSniperApp(ctk.CTk):
         else:
             self._show_welcome()
         log.info(f"تم تغيير الثيم إلى: {new_mode}")
+        settings.set("theme", new_mode)
 
     # ====== التصدير ======
     def do_export_csv(self):
@@ -454,6 +530,17 @@ class NetworkSniperApp(ctk.CTk):
         if path:
             self._set_status(f"تم التصدير: {path}", COLORS["accent_green"])
             AlertDialog(self, "Export", f"{ar('تم تصدير CSV بنجاح')}\n{path}", "success")
+        else:
+            AlertDialog(self, "Error", ar("فشل التصدير"), "error")
+
+    def do_export_json(self):
+        if not self.devices:
+            AlertDialog(self, "Export", ar("لا توجد بيانات للتصدير. قم بالفحص أولاً."), "warning")
+            return
+        path = export_json(self.devices, self.port_results if self.port_results else None)
+        if path:
+            self._set_status(f"تم التصدير: {path}", COLORS["accent_green"])
+            AlertDialog(self, "Export", f"{ar('تم تصدير JSON بنجاح')}\n{path}", "success")
         else:
             AlertDialog(self, "Error", ar("فشل التصدير"), "error")
 
@@ -468,11 +555,35 @@ class NetworkSniperApp(ctk.CTk):
         else:
             AlertDialog(self, "Error", ar("فشل التصدير - تأكد من تثبيت fpdf2"), "error")
 
+    def _hide_window(self):
+        """إخفاء النافذة عبر withdraw (يعمل على كل بيئات Linux)"""
+        self._is_hidden = True
+        self.withdraw()
+
+    def show_window(self):
+        """toggle: إظهار إذا مخفية، إخفاء إذا ظاهرة"""
+        if self._is_hidden or self.state() in ("iconic", "withdrawn"):
+            self._is_hidden = False
+            self.deiconify()
+            self.lift()
+            self.focus_force()
+        else:
+            self._hide_window()
+
+    def _on_unmap(self, event):
+        if event.widget is self:
+            self._is_hidden = True
+
+    def _on_map(self, event):
+        if event.widget is self:
+            self._is_hidden = False
+
     # ====== الإغلاق ======
     def _on_close(self):
         log.info("جاري إغلاق التطبيق...")
         self.scanner.stop()
         self.monitor.stop()
+        self.port_scanner.cleanup()
         self.disconnector.cleanup()
         self.game_mode.cleanup()
         self.destroy()

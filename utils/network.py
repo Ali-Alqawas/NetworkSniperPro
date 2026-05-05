@@ -42,7 +42,28 @@ def get_local_ip():
 
 
 def get_local_network():
-    """استخراج نطاق الشبكة المحلي"""
+    """استخراج نطاق الشبكة المحلي مع الـ prefix الصحيح من النظام"""
+    try:
+        # قراءة الـ default route للحصول على الـ interface
+        route = subprocess.check_output(["ip", "route", "show", "default"], text=True)
+        iface_match = re.search(r"dev (\S+)", route)
+        if iface_match:
+            iface = iface_match.group(1)
+            # قراءة الـ subnet الكامل مع الـ prefix من الـ interface مباشرة
+            addr_out = subprocess.check_output(
+                ["ip", "-4", "addr", "show", "dev", iface], text=True
+            )
+            # مثال: inet 192.168.1.105/24 أو inet 10.0.0.5/8
+            net_match = re.search(r"inet (\d+\.\d+\.\d+\.\d+)/(\d+)", addr_out)
+            if net_match:
+                ip, prefix = net_match.group(1), int(net_match.group(2))
+                # احسب عنوان الشبكة (network address) من الـ IP والـ prefix
+                import ipaddress
+                network = ipaddress.IPv4Network(f"{ip}/{prefix}", strict=False)
+                return str(network)
+    except Exception:
+        pass
+    # fallback: /24 من الـ IP المحلي
     local_ip = get_local_ip()
     parts = local_ip.split('.')
     return f"{parts[0]}.{parts[1]}.{parts[2]}.0/24"
@@ -104,7 +125,34 @@ def validate_network_range(network_range):
     return 0 <= int(cidr) <= 32
 
 
-def validate_mac(mac):
+def measure_interface_speed(duration=1.5):
+    """
+    قياس سرعة الـ interface الحالي من /proc/net/dev خلال مدة محددة.
+    يُرجع (dl_mbps, ul_mbps) — بدون إنترنت، بدون أدوات خارجية.
+    """
+    iface = get_default_interface()
+    def _read_bytes():
+        try:
+            with open("/proc/net/dev") as f:
+                for line in f:
+                    if iface in line:
+                        cols = line.split()
+                        return int(cols[1]), int(cols[9])  # rx_bytes, tx_bytes
+        except Exception:
+            pass
+        return 0, 0
+
+    import time
+    rx1, tx1 = _read_bytes()
+    time.sleep(duration)
+    rx2, tx2 = _read_bytes()
+
+    dl_mbps = round((rx2 - rx1) * 8 / duration / 1_000_000, 2)
+    ul_mbps = round((tx2 - tx1) * 8 / duration / 1_000_000, 2)
+    return max(dl_mbps, 0.0), max(ul_mbps, 0.0)
+
+
+
     """التحقق من صحة عنوان MAC"""
     pattern = r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$'
     return bool(re.match(pattern, mac))

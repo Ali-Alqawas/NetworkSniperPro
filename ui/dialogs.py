@@ -170,17 +170,16 @@ class SpeedResultDialog(ctk.CTkToplevel):
 
 
 class GameModeDialog(ctk.CTkToplevel):
-    """نافذة اختيار الجهاز + تحديد السرعة ديناميكياً"""
+    """نافذة اختيار الجهاز + تحديد سرعة الآخرين"""
     def __init__(self, master, devices, on_confirm=None):
         super().__init__(master)
         self.title("Game Mode")
-        self.geometry("460x580")
-        self.minsize(440, 540)
+        self.geometry("460x540")
+        self.minsize(440, 500)
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
         self.on_confirm = on_confirm
 
-        # ── layout: header ثابت + scroll يمتد + footer ثابت ──
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
@@ -192,12 +191,11 @@ class GameModeDialog(ctk.CTkToplevel):
                      font=ctk.CTkFont(size=17, weight="bold"),
                      text_color=COLORS["accent_green"]).pack()
 
-        # Scrollable body — يحتوي كل المحتوى
         body = SmartScrollFrame(self, fg_color="transparent")
         body.grid(row=1, column=0, sticky="nsew", padx=4, pady=4)
 
-        # اختيار الجهاز
-        ctk.CTkLabel(body, text=ar("الجهاز ذو الأولوية:"),
+        # ── اختيار الجهاز ──
+        ctk.CTkLabel(body, text=ar("الجهاز الذي تريد إعطاءه الأولوية (جهازك):"),
                      font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]
                      ).pack(anchor="w", padx=20, pady=(8, 2))
 
@@ -224,20 +222,29 @@ class GameModeDialog(ctk.CTkToplevel):
         elif devices:
             self.selected_ip.set(devices[0]["ip"])
 
-        # فاصل
         ctk.CTkFrame(body, height=1, fg_color=COLORS["bg_input"]).pack(fill="x", padx=16, pady=(4, 10))
 
-        # سرعة الخط
-        ctk.CTkLabel(body, text=ar("سرعة خطك الفعلية:"),
+        # ── قياس السرعة ──
+        speed_header = ctk.CTkFrame(body, fg_color="transparent")
+        speed_header.pack(fill="x", padx=20, pady=(0, 4))
+        ctk.CTkLabel(speed_header,
+                     text=ar("سرعة الإنترنت عندك (Mbps):"),
                      font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]
-                     ).pack(anchor="w", padx=20, pady=(0, 4))
+                     ).pack(side="left")
+        self._measure_btn = ctk.CTkButton(
+            speed_header, text=ar("📡 قياس تلقائي"), width=120, height=24,
+            font=ctk.CTkFont(size=11),
+            fg_color=COLORS["accent_blue"], hover_color=COLORS["hover_blue"],
+            command=self._auto_measure
+        )
+        self._measure_btn.pack(side="right")
 
         speed_frame = ctk.CTkFrame(body, fg_color=COLORS["bg_sidebar"], corner_radius=8)
         speed_frame.pack(fill="x", padx=16, pady=(0, 8))
 
         for label_txt, var_default, attr in [
-            ("⬇️  تحميل (Mbps):", "2.96", "_dl_var"),
-            ("⬆️  رفع (Mbps):",   "1.09", "_ul_var"),
+            ("⬇️  تحميل (Mbps):", "0.0", "_dl_var"),
+            ("⬆️  رفع (Mbps):",   "0.0", "_ul_var"),
         ]:
             row = ctk.CTkFrame(speed_frame, fg_color="transparent")
             row.pack(fill="x", padx=12, pady=5)
@@ -249,10 +256,17 @@ class GameModeDialog(ctk.CTkToplevel):
                          fg_color=COLORS["bg_input"], text_color=COLORS["text_primary"],
                          font=ctk.CTkFont(size=12)).pack(side="left", padx=8)
 
-        # Slider
-        ctk.CTkLabel(body, text=ar("نسبة ما يحصل عليه الآخرون:"),
+        ctk.CTkFrame(body, height=1, fg_color=COLORS["bg_input"]).pack(fill="x", padx=16, pady=(0, 10))
+
+        # ── الشريط: كم % يحصل عليه الآخرون ──
+        ctk.CTkLabel(body,
+                     text=ar("كم % من السرعة يحصل عليه باقي الأجهزة؟"),
                      font=ctk.CTkFont(size=12), text_color=COLORS["text_muted"]
-                     ).pack(anchor="w", padx=20, pady=(0, 4))
+                     ).pack(anchor="w", padx=20, pady=(0, 2))
+        ctk.CTkLabel(body,
+                     text=ar("مثال: 20% تعني أن كل جهاز آخر لن يتجاوز 20% من سرعتك"),
+                     font=ctk.CTkFont(size=10), text_color=COLORS["text_muted"]
+                     ).pack(anchor="w", padx=20, pady=(0, 6))
 
         slider_outer = ctk.CTkFrame(body, fg_color=COLORS["bg_sidebar"], corner_radius=8)
         slider_outer.pack(fill="x", padx=16, pady=(0, 4))
@@ -271,16 +285,17 @@ class GameModeDialog(ctk.CTkToplevel):
                       progress_color=COLORS["accent_orange"],
                       command=self._on_slider).pack(side="left", fill="x", expand=True)
 
+        # نتيجة الحساب بشكل واضح
         self._calc_lbl = ctk.CTkLabel(body, text="",
-                                       font=ctk.CTkFont(size=11),
+                                       font=ctk.CTkFont(size=12, weight="bold"),
                                        text_color=COLORS["accent_orange"])
-        self._calc_lbl.pack(pady=(2, 8))
+        self._calc_lbl.pack(pady=(4, 8))
 
         self._dl_var.trace_add("write", lambda *_: self._update_calc())
         self._ul_var.trace_add("write", lambda *_: self._update_calc())
         self._update_calc()
 
-        # Footer ثابت
+        # Footer
         footer = ctk.CTkFrame(self, fg_color="transparent")
         footer.grid(row=2, column=0, pady=(4, 12))
         ctk.CTkButton(footer, text=ar("إلغاء"), width=120, height=34,
@@ -292,6 +307,20 @@ class GameModeDialog(ctk.CTkToplevel):
                       command=self._confirm).pack(side="left", padx=8)
 
         self.after(100, lambda: (_center(self), _safe_grab(self)))
+
+    def _auto_measure(self):
+        self._measure_btn.configure(state="disabled", text=ar("⏳ جاري القياس..."))
+        def _measure():
+            from utils.network import measure_interface_speed
+            dl, ul = measure_interface_speed(duration=1.5)
+            self.after(0, lambda: self._set_speed(dl, ul))
+        threading.Thread(target=_measure, daemon=True).start()
+
+    def _set_speed(self, dl, ul):
+        self._dl_var.set(str(dl if dl > 0 else 1.0))
+        self._ul_var.set(str(ul if ul > 0 else 0.5))
+        self._measure_btn.configure(state="normal", text=ar("📡 قياس تلقائي"))
+        self._update_calc()
 
     def _on_slider(self, val):
         self._pct_lbl.configure(text=f"{int(val)}%")
@@ -305,7 +334,7 @@ class GameModeDialog(ctk.CTkToplevel):
             dl_limit = max(0.1, round(dl * pct, 2))
             ul_limit = max(0.1, round(ul * pct, 2))
             self._calc_lbl.configure(
-                text=ar(f"الآخرون: ⬇️ {dl_limit} Mbps  ⬆️ {ul_limit} Mbps")
+                text=ar(f"⬇️ الآخرون سيحصلون على: {dl_limit} Mbps تحميل  |  {ul_limit} Mbps رفع")
             )
         except (ValueError, ZeroDivisionError):
             self._calc_lbl.configure(text=ar("أدخل أرقاماً صحيحة"))
@@ -325,6 +354,7 @@ class GameModeDialog(ctk.CTkToplevel):
         if self.on_confirm:
             self.on_confirm(ip, dl_kbit, ul_kbit)
         self.destroy()
+
 
 
 class GameMonitorDialog(ctk.CTkToplevel):

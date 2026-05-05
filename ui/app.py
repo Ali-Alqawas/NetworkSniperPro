@@ -58,9 +58,9 @@ class NetworkSniperApp(ctk.CTk):
         self._build_sidebar()
         self._build_main_area()
 
-        # تحميل النطاق المحفوظ في حقل الإدخال
+        # تحميل النطاق المحفوظ فقط إذا كان ينتمي للشبكة الحالية
         saved_net = self._settings.get("network_range", "")
-        if saved_net:
+        if saved_net and self._is_same_network(saved_net, get_local_network()):
             self.sidebar.set_network_range(saved_net)
 
         # تنظيف عند الإغلاق
@@ -387,7 +387,11 @@ class NetworkSniperApp(ctk.CTk):
             self.sidebar.set_monitoring(False)
             self._set_status("تم إيقاف المراقبة", COLORS["text_muted"])
         else:
-            net = get_local_network()
+            # استخدم النطاق المدخل يدوياً أو الاكتشاف التلقائي (نفس منطق start_scan)
+            custom = self.sidebar.get_network_range()
+            from utils.network import validate_network_range
+            net = custom if custom and validate_network_range(custom) else get_local_network()
+            self.network_label.configure(text=f"🌐 {net}")
             if self.devices:
                 self.monitor.set_initial_devices(self.devices)
             def on_new(dev):
@@ -438,47 +442,58 @@ class NetworkSniperApp(ctk.CTk):
         """تطبيق الألوان على الثيم المحدد (dark أو light)"""
         import config
         palette = config.COLORS_DARK if target == "dark" else config.COLORS_LIGHT
+
+        # في الـ light mode الخلفية فاتحة والقوالب أفتح — نعكس المنطق
+        if target == "light":
+            hover   = self._adjust(card_hex, -12)   # أغمق قليلاً للـ hover
+            inp     = self._adjust(card_hex, -20)    # أغمق للـ input
+        else:
+            hover   = self._adjust(card_hex, -15)
+            inp     = self._adjust(card_hex, -25)
+
         palette["bg_dark"]       = bg_hex
         palette["bg_main"]       = bg_hex
         palette["bg_sidebar"]    = card_hex
         palette["bg_card"]       = card_hex
-        palette["bg_card_hover"] = self._darken(card_hex, 15)
-        palette["bg_input"]      = self._darken(card_hex, 25)
+        palette["bg_card_hover"] = hover
+        palette["bg_input"]      = inp
 
-        # إذا كان الثيم الحالي هو المستهدف — طبّق فوراً على الواجهة
         if target == config.CURRENT_THEME:
             config.COLORS.update(palette)
             self.configure(fg_color=bg_hex)
             self.main_frame.configure(fg_color=card_hex)
             self.devices_list.configure(fg_color=bg_hex)
-            self.statusbar.configure(fg_color=config.COLORS["bg_input"])
-            self.progress.configure(fg_color=config.COLORS["bg_input"])
+            self.statusbar.configure(fg_color=inp)
+            self.progress.configure(fg_color=inp)
             self.sidebar.refresh_theme()
             if self.devices:
                 self._render_devices()
             else:
                 self._show_welcome()
+
         log.info(f"تم تطبيق ألوان مخصصة على {target}: bg={bg_hex} card={card_hex}")
-        # حفظ الألوان المخصصة
-        import config
         settings.set(f"colors_{target}", {
-            "bg_dark": config.COLORS_DARK["bg_dark"] if target == "dark" else config.COLORS_LIGHT["bg_dark"],
-            "bg_main": config.COLORS_DARK["bg_main"] if target == "dark" else config.COLORS_LIGHT["bg_main"],
-            "bg_sidebar": config.COLORS_DARK["bg_sidebar"] if target == "dark" else config.COLORS_LIGHT["bg_sidebar"],
-            "bg_card": config.COLORS_DARK["bg_card"] if target == "dark" else config.COLORS_LIGHT["bg_card"],
-            "bg_card_hover": config.COLORS_DARK["bg_card_hover"] if target == "dark" else config.COLORS_LIGHT["bg_card_hover"],
-            "bg_input": config.COLORS_DARK["bg_input"] if target == "dark" else config.COLORS_LIGHT["bg_input"],
+            k: palette[k] for k in
+            ("bg_dark", "bg_main", "bg_sidebar", "bg_card", "bg_card_hover", "bg_input")
         })
 
     @staticmethod
-    def _darken(hex_color, amount):
-        """تغميق لون hex بمقدار معين"""
+    def _adjust(hex_color, amount):
+        """تعديل سطوع لون hex — سالب = أغمق، موجب = أفتح"""
         hex_color = hex_color.lstrip("#")
-        r, g, b = int(hex_color[0:2],16), int(hex_color[2:4],16), int(hex_color[4:6],16)
-        r, g, b = max(0,r-amount), max(0,g-amount), max(0,b-amount)
+        r = max(0, min(255, int(hex_color[0:2], 16) + amount))
+        g = max(0, min(255, int(hex_color[2:4], 16) + amount))
+        b = max(0, min(255, int(hex_color[4:6], 16) + amount))
         return f"#{r:02x}{g:02x}{b:02x}"
 
-    # ====== تبديل الثيم ======
+    @staticmethod
+    def _is_same_network(saved: str, current: str) -> bool:
+        """تحقق أن النطاق المحفوظ ينتمي لنفس الشبكة الحالية"""
+        try:
+            import ipaddress
+            return ipaddress.IPv4Network(saved, strict=False) == ipaddress.IPv4Network(current, strict=False)
+        except Exception:
+            return False
     def do_toggle_theme(self):
         new_mode = toggle_theme()
         from config import COLORS

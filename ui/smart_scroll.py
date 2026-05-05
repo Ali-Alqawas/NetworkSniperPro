@@ -1,7 +1,7 @@
 """
 SmartScrollFrame — CTkScrollableFrame محسّن للـ Linux
-- عجلة الماوس تعمل على Linux (Button-4/5)
-- scrollbar يظهر فقط عند الحاجة (بدون configure loop)
+- عجلة الماوس تعمل على أي widget داخل الـ frame (bind_all)
+- scrollbar يظهر فقط عند الحاجة
 """
 import sys
 import customtkinter as ctk
@@ -14,28 +14,26 @@ class SmartScrollFrame(ctk.CTkScrollableFrame):
         self._sb_visible = True
         self._sb_check_id = None
 
-        # Linux: Button-4/5 على الـ canvas والـ frame
+        # Linux: bind_all مثل CTkScrollableFrame لكن لـ Button-4/5
         if sys.platform.startswith("linux"):
-            for widget in (self._parent_canvas, self):
-                widget.bind("<Button-4>", self._scroll_up,   add="+")
-                widget.bind("<Button-5>", self._scroll_down, add="+")
+            self.bind_all("<Button-4>", self._linux_wheel, add="+")
+            self.bind_all("<Button-5>", self._linux_wheel, add="+")
 
-        # فحص الـ scrollbar بعد رسم المحتوى (مرة واحدة بعد idle)
         self.bind("<Configure>", self._schedule_sb_check, add="+")
         self._parent_canvas.bind("<Configure>", self._schedule_sb_check, add="+")
 
-    def _scroll_up(self, event):
-        if self._parent_canvas.yview() != (0.0, 1.0):
+    def _linux_wheel(self, event):
+        # نفس منطق check_if_master_is_canvas
+        if not self.check_if_master_is_canvas(event.widget):
+            return
+        if self._parent_canvas.yview() == (0.0, 1.0):
+            return
+        if event.num == 4:
             self._parent_canvas.yview_scroll(-1, "units")
-        return "break"
-
-    def _scroll_down(self, event):
-        if self._parent_canvas.yview() != (0.0, 1.0):
+        elif event.num == 5:
             self._parent_canvas.yview_scroll(1, "units")
-        return "break"
 
     def _schedule_sb_check(self, event=None):
-        """جدولة الفحص بعد انتهاء كل أحداث الـ configure الحالية"""
         if self._sb_check_id:
             try:
                 self.after_cancel(self._sb_check_id)

@@ -66,6 +66,11 @@ class NetworkSniperApp(ctk.CTk):
         # تنظيف عند الإغلاق
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
+        # زر التصغير — toggle بين إخفاء وإظهار
+        self.bind("<Unmap>", self._on_unmap)
+        self.bind("<Map>",   self._on_map)
+        self._is_hidden = False
+
         log.info("تم تشغيل التطبيق")
 
     def _apply_saved_theme(self):
@@ -536,6 +541,23 @@ class NetworkSniperApp(ctk.CTk):
             AlertDialog(self, "Export", f"{ar('تم تصدير PDF بنجاح')}\n{path}", "success")
         else:
             AlertDialog(self, "Error", ar("فشل التصدير - تأكد من تثبيت fpdf2"), "error")
+
+    def _on_unmap(self, event):
+        if event.widget is self:
+            self._is_hidden = True
+
+    def _on_map(self, event):
+        if event.widget is self:
+            self._is_hidden = False
+
+    def show_window(self):
+        """إظهار النافذة أو إخفاؤها (toggle) — يُستدعى من main.py"""
+        if self._is_hidden or self.state() == "iconic":
+            self.deiconify()
+            self.lift()
+            self.focus_force()
+        else:
+            self.iconify()
 
     # ====== الإغلاق ======
     def _on_close(self):

@@ -65,10 +65,8 @@ class NetworkSniperApp(ctk.CTk):
 
         # تنظيف عند الإغلاق
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-
-        # زر التصغير — toggle بين إخفاء وإظهار
-        self.bind("<Unmap>", self._on_unmap)
-        self.bind("<Map>",   self._on_map)
+        # اعتراض زر التصغير — نستخدم withdraw لأن iconify لا يعمل على كل بيئات Linux
+        self.protocol("WM_ICONIFY_WINDOW", self._hide_window)
         self._is_hidden = False
 
         log.info("تم تشغيل التطبيق")
@@ -542,6 +540,21 @@ class NetworkSniperApp(ctk.CTk):
         else:
             AlertDialog(self, "Error", ar("فشل التصدير - تأكد من تثبيت fpdf2"), "error")
 
+    def _hide_window(self):
+        """إخفاء النافذة عبر withdraw (يعمل على كل بيئات Linux)"""
+        self._is_hidden = True
+        self.withdraw()
+
+    def show_window(self):
+        """toggle: إظهار إذا مخفية، إخفاء إذا ظاهرة"""
+        if self._is_hidden or self.state() in ("iconic", "withdrawn"):
+            self._is_hidden = False
+            self.deiconify()
+            self.lift()
+            self.focus_force()
+        else:
+            self._hide_window()
+
     def _on_unmap(self, event):
         if event.widget is self:
             self._is_hidden = True
@@ -549,15 +562,6 @@ class NetworkSniperApp(ctk.CTk):
     def _on_map(self, event):
         if event.widget is self:
             self._is_hidden = False
-
-    def show_window(self):
-        """إظهار النافذة أو إخفاؤها (toggle) — يُستدعى من main.py"""
-        if self._is_hidden or self.state() == "iconic":
-            self.deiconify()
-            self.lift()
-            self.focus_force()
-        else:
-            self.iconify()
 
     # ====== الإغلاق ======
     def _on_close(self):

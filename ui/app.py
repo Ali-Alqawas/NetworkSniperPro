@@ -41,6 +41,18 @@ class NetworkSniperApp(ctk.CTk):
         x = (sw - WINDOW_WIDTH) // 2
         y = (sh - WINDOW_HEIGHT) // 2
         self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{x}+{y}")
+        
+        # تعيين أيقونة التطبيق
+        try:
+            import os
+            import tkinter as tk
+            icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "icons", "app_icon.png")
+            if os.path.exists(icon_path):
+                icon_image = tk.PhotoImage(file=icon_path)
+                self.wm_iconphoto(True, icon_image)
+        except Exception as e:
+            log.warning(f"فشل تحميل أيقونة التطبيق: {e}")
+            
         # المحركات
         self.scanner = NetworkScanner()
         self.disconnector = Disconnector()
@@ -52,6 +64,7 @@ class NetworkSniperApp(ctk.CTk):
         # البيانات
         self.devices = []
         self.port_results = {}
+        self.whitelist = self._settings.get("whitelist", [])
         self.is_monitoring = False
 
         # بناء الواجهة
@@ -153,6 +166,30 @@ class NetworkSniperApp(ctk.CTk):
         self.progress.pack(fill="x", padx=20, pady=(0, 6))
         self.progress.set(0)
 
+        # لوحة الإحصائيات المصغرة
+        self.dashboard_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.dashboard_frame.pack(fill="x", padx=16, pady=(0, 6))
+        self.dash_total = self._create_dash_card(self.dashboard_frame, "🌐", ar("إجمالي"), "0", COLORS["accent_blue"])
+        self.dash_disc = self._create_dash_card(self.dashboard_frame, "✂️", ar("مقطوع"), "0", COLORS["accent_red"])
+        self.dash_vip = self._create_dash_card(self.dashboard_frame, "⭐", ar("محمي"), "0", COLORS["accent_gold"])
+
+        # شريط البحث
+        search_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        search_frame.pack(fill="x", padx=16, pady=(10, 6))
+        
+        ctk.CTkLabel(search_frame, text=ar("🔍 محرك البحث الذكي:"), font=ctk.CTkFont(size=13, weight="bold"), text_color=COLORS["text_primary"]).pack(side="left", padx=(4, 10))
+        
+        self.search_var = ctk.StringVar()
+        self.search_var.trace_add("write", lambda *args: self._render_devices())
+        
+        self.search_entry = ctk.CTkEntry(
+            search_frame, textvariable=self.search_var,
+            placeholder_text=ar("اكتب الـ IP، أو MAC، أو اسم الجهاز لتصفيته..."),
+            font=ctk.CTkFont(size=13),
+            fg_color=COLORS["bg_input"], border_width=1, border_color=COLORS["bg_card"], height=36
+        )
+        self.search_entry.pack(side="left", fill="x", expand=True, padx=4)
+
         # قائمة الأجهزة
         self.devices_list = SmartScrollFrame(
             self.main_frame,
@@ -184,6 +221,15 @@ class NetworkSniperApp(ctk.CTk):
         self.time_label.pack(side="right", padx=14)
 
         self._show_welcome()
+
+    def _create_dash_card(self, parent, icon, title, value, color):
+        card = ctk.CTkFrame(parent, fg_color=COLORS["bg_card"], corner_radius=10, border_width=1, border_color=color)
+        card.pack(side="left", expand=True, fill="x", padx=6)
+        ctk.CTkLabel(card, text=icon, font=ctk.CTkFont(size=24)).pack(side="left", padx=(12, 5), pady=12)
+        v_lbl = ctk.CTkLabel(card, text=value, font=ctk.CTkFont(size=18, weight="bold"), text_color=color)
+        v_lbl.pack(side="right", padx=(5, 12), pady=12)
+        ctk.CTkLabel(card, text=title, font=ctk.CTkFont(size=13, weight="bold"), text_color=COLORS["text_secondary"]).pack(side="right", pady=12)
+        return v_lbl
 
     def _show_welcome(self):
         self._clear_list()
@@ -225,7 +271,7 @@ class NetworkSniperApp(ctk.CTk):
         from utils.network import validate_network_range
         net = custom if custom and validate_network_range(custom) else get_local_network()
         # حفظ النطاق المستخدم
-        settings.set("network_range", net)
+        settings.set_value("network_range", net)
         self.network_label.configure(text=f"🌐 {net}")
         self.scanner.scan(net, on_complete=lambda d: self.after(0, lambda: self._on_scan_complete(d)), on_error=lambda e: self.after(0, lambda: self._on_scan_error(e)), on_progress=lambda m: self.after(0, lambda: self._set_status(m, COLORS["accent_blue"])))
 
@@ -264,30 +310,88 @@ class NetworkSniperApp(ctk.CTk):
 
     def _render_devices(self):
         self._clear_list()
+        
         if not self.devices:
-            ctk.CTkLabel(self.devices_list, text=ar("الشبكة فارغة أو الفحص يحتاج صلاحيات sudo"), text_color=COLORS["accent_orange"], font=ctk.CTkFont(size=15)).pack(pady=100)
+            if not getattr(self.scanner, "is_scanning", False) and not self.is_monitoring:
+                ctk.CTkLabel(self.devices_list, text=ar("الشبكة فارغة أو الفحص يحتاج صلاحيات sudo"), text_color=COLORS["accent_orange"], font=ctk.CTkFont(size=15)).pack(pady=100)
             return
+
+        query = self.search_var.get().lower().strip()
+        filtered_devices = []
         for dev in self.devices:
+            if query in dev.get("ip", "").lower() or \
+               query in dev.get("mac", "").lower() or \
+               query in dev.get("vendor", "").lower() or \
+               query in dev.get("hostname", "").lower():
+                filtered_devices.append(dev)
+                
+        if query and not filtered_devices:
+            ctk.CTkLabel(self.devices_list, text=ar("لم يتم العثور على أجهزة مطابقة للبحث 🕵️"), text_color=COLORS["text_muted"], font=ctk.CTkFont(size=14)).pack(pady=100)
+            return
+
+        for dev in filtered_devices:
             is_disc = self.disconnector.is_disconnected(dev["ip"])
-            card = DeviceCard(self.devices_list, dev, on_disconnect=self._ask_disconnect, on_reconnect=self._do_reconnect, on_port_scan=self._do_port_scan, on_copy_mac=self._copy_mac, is_disconnected=is_disc, on_rename=self._render_devices)
+            mac = dev.get("mac", "").upper()
+            is_vip = mac in self.whitelist if mac else False
+            card = DeviceCard(self.devices_list, dev, on_disconnect=self._ask_disconnect, on_reconnect=self._do_reconnect, on_port_scan=self._do_port_scan, on_copy_mac=self._copy_mac, is_disconnected=is_disc, on_rename=self._render_devices, is_vip=is_vip, on_toggle_vip=self._toggle_vip)
             card.pack(fill="x", pady=4, padx=5)
+
+        self._update_dashboard()
+
+    def _update_dashboard(self):
+        if not hasattr(self, "dash_total"): return
+        total = len(self.devices)
+        disc = len(self.disconnector.get_disconnected_list())
+        vips = sum(1 for d in self.devices if d.get("mac", "").upper() in self.whitelist)
+        
+        self.dash_total.configure(text=str(total))
+        self.dash_disc.configure(text=str(disc))
+        self.dash_vip.configure(text=str(vips))
+
+    def _toggle_vip(self, dev):
+        mac = dev.get("mac", "").upper()
+        if not mac or "N/A" in mac: return
+        
+        if mac in self.whitelist:
+            self.whitelist.remove(mac)
+            self._set_status(f"تم إزالة {dev.get('ip')} من القائمة البيضاء", COLORS["accent_orange"])
+        else:
+            self.whitelist.append(mac)
+            self._set_status(f"تم حماية {dev.get('ip')} (VIP ⭐)", COLORS["accent_gold"])
+            
+        settings.set_value("whitelist", self.whitelist)
+        self._render_devices()
 
     # ====== قطع الاتصال ======
     def _ask_disconnect(self, dev):
-        DisconnectDialog(self, dev, on_confirm=lambda dur: self._do_disconnect(dev, dur))
+        DisconnectDialog(self, dev, on_confirm=lambda dur, a_type, iface: self._do_disconnect(dev, dur, a_type, iface))
 
-    def _do_disconnect(self, dev, duration):
+    def _do_disconnect(self, dev, duration, attack_type="arp", iface=None):
+        if dev.get("is_local"):
+            AlertDialog(self, "تحذير", ar("لا يمكنك قطع الاتصال عن جهازك الخاص! (الهجوم يتم من هذا الجهاز)"), "warning")
+            return
+            
         ip = dev["ip"]
         mac = dev["mac"]
         gw = get_gateway_ip()
+        
+        bssid = None
+        if attack_type == "deauth":
+            from utils.network import get_bssid
+            bssid = get_bssid(iface)
+            if not bssid:
+                AlertDialog(self, "Error", ar("لم يتم العثور على BSSID (عنوان الراوتر) لهجوم Deauth"), "error")
+                return
+
         def on_status(target_ip, status):
             self.after(0, lambda: self._render_devices())
-        success = self.disconnector.disconnect(ip, mac, gw, duration=duration, on_status=on_status)
+            
+        success = self.disconnector.disconnect(ip, mac, gw, duration=duration, on_status=on_status, attack_type=attack_type, iface=iface, bssid=bssid)
         if success:
-            self._set_status(f"تم قطع {ip}", COLORS["accent_red"])
+            self._set_status(f"تم قطع {ip} ({attack_type})", COLORS["accent_red"])
             self.after(500, self._render_devices)
         else:
-            AlertDialog(self, "Error", ar("فشل قطع الاتصال"), "error")
+            AlertDialog(self, "Error", ar("فشل قطع الاتصال. تأكد من توفر الصلاحيات والأدوات"), "error")
 
     def _do_reconnect(self, dev):
         ip = dev["ip"]
@@ -337,7 +441,9 @@ class NetworkSniperApp(ctk.CTk):
                 from utils.network import get_local_ip
                 self._start_game_mode(get_local_ip(), 512, 256)
             else:
-                GameModeDialog(self, self.devices, on_confirm=self._start_game_mode)
+                # تصفية أجهزة VIP حتى لا يتم تقييدها في وضع الألعاب
+                non_vip_devices = [d for d in self.devices if d.get("mac", "").upper() not in self.whitelist]
+                GameModeDialog(self, non_vip_devices, on_confirm=self._start_game_mode)
 
     def _start_game_mode(self, priority_ip, dl_kbit=512, ul_kbit=256):
         def on_status(active, msg):
@@ -407,21 +513,34 @@ class NetworkSniperApp(ctk.CTk):
 
     def _on_new_device(self, dev):
         ip = dev.get("ip", "?")
+        mac = dev.get("mac", "")
         vendor = dev.get("vendor", "?")
         hostname = dev.get("hostname", "")
         history.upsert_device(dev)
-        history.log_event(dev.get("mac",""), ip, "connected")
-        self._set_status(f"🆕 جهاز جديد: {ip} ({vendor})", COLORS["accent_cyan"])
-        # إشعار نظام
-        name = hostname if hostname and hostname != "غير معروف" else vendor
-        try:
-            import subprocess as _sp
-            _sp.Popen(["notify-send", "-i", "network-wireless",
-                       "Network Sniper Pro", f"جهاز جديد: {ip}\n{name}"],
-                      stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
-        except Exception:
-            pass
-        AlertDialog(self, "New Device", f"🆕 {ar('جهاز جديد اتصل بالشبكة')}\nIP: {ip}\nVendor: {vendor}", "new_device")
+        history.log_event(mac, ip, "connected")
+        
+        # --- التحقق من القطع المستمر التلقائي ---
+        def on_status(target_ip, status):
+            self.after(0, lambda: self._render_devices())
+            
+        was_resumed = self.disconnector.auto_disconnect_if_blacklisted(ip, mac, on_status=on_status)
+        
+        if was_resumed:
+            self._set_status(f"⚠️ جهاز عاد فتم قطعه فوراً: {ip}", COLORS["accent_red"])
+            # إشعار صامت أو تنبيه استئناف
+            AlertDialog(self, "Auto Disconnect", f"🛡️ {ar('تم استئناف قطع الاتصال تلقائياً لجهاز عاد للشبكة')}\nIP: {ip}", "warning")
+        else:
+            self._set_status(f"🆕 جهاز جديد: {ip} ({vendor})", COLORS["accent_cyan"])
+            # إشعار نظام للجهاز الجديد العادي
+            name = hostname if hostname and hostname != "غير معروف" else vendor
+            try:
+                import subprocess as _sp
+                _sp.Popen(["notify-send", "-i", "network-wireless",
+                           "Network Sniper Pro", f"جهاز جديد: {ip}\n{name}"],
+                          stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+            except Exception:
+                pass
+            AlertDialog(self, "New Device", f"🆕 {ar('جهاز جديد اتصل بالشبكة')}\nIP: {ip}\nVendor: {vendor}", "new_device")
 
     def _on_device_left(self, dev):
         ip = dev.get("ip", "?")
@@ -472,7 +591,7 @@ class NetworkSniperApp(ctk.CTk):
                 self._show_welcome()
 
         log.info(f"تم تطبيق ألوان مخصصة على {target}: bg={bg_hex} card={card_hex}")
-        settings.set(f"colors_{target}", {
+        settings.set_value(f"colors_{target}", {
             k: palette[k] for k in
             ("bg_dark", "bg_main", "bg_sidebar", "bg_card", "bg_card_hover", "bg_input")
         })
@@ -519,7 +638,7 @@ class NetworkSniperApp(ctk.CTk):
         else:
             self._show_welcome()
         log.info(f"تم تغيير الثيم إلى: {new_mode}")
-        settings.set("theme", new_mode)
+        settings.set_value("theme", new_mode)
 
     # ====== التصدير ======
     def do_export_csv(self):
@@ -580,6 +699,29 @@ class NetworkSniperApp(ctk.CTk):
 
     # ====== الإغلاق ======
     def _on_close(self):
+        # التحقق من وجود عمليات نشطة
+        active_processes = False
+        warning_msg = ""
+        
+        if getattr(self.scanner, "is_scanning", False):
+            active_processes = True
+            warning_msg += "• " + ar("فحص الشبكة قيد التنفيذ") + "\n"
+        if getattr(self.port_scanner, "is_scanning", False):
+            active_processes = True
+            warning_msg += "• " + ar("فحص المنافذ قيد التنفيذ") + "\n"
+        if self.disconnector.get_disconnected_list():
+            active_processes = True
+            warning_msg += "• " + ar("يوجد أجهزة مقطوعة الاتصال حالياً") + "\n"
+            
+        if active_processes:
+            from tkinter import messagebox
+            confirm = messagebox.askyesno(
+                "تأكيد الإغلاق",
+                ar("هناك عمليات نشطة:") + "\n" + warning_msg + "\n" + ar("هل أنت متأكد من رغبتك في الإغلاق؟")
+            )
+            if not confirm:
+                return
+
         log.info("جاري إغلاق التطبيق...")
         self.scanner.stop()
         self.monitor.stop()

@@ -6,6 +6,7 @@ import re
 from utils.arabic import ar
 from config import COLORS, DISCONNECT_DURATIONS, PALETTE_BG, PALETTE_CARD
 from ui.smart_scroll import SmartScrollFrame
+from utils.network import get_wireless_interfaces
 
 
 def _safe_grab(dialog):
@@ -26,25 +27,14 @@ def _center(dialog):
     dialog.geometry(f"+{(sw - w) // 2}+{(sh - h) // 2}")
 
 
-    """ربط عجلة الماوس بـ CTkScrollableFrame على Linux/Windows/Mac"""
-    def _wheel(e):
-        if e.num == 4:
-            scrollable._parent_canvas.yview_scroll(-1, "units")
-        elif e.num == 5:
-            scrollable._parent_canvas.yview_scroll(1, "units")
-        else:
-            scrollable._parent_canvas.yview_scroll(int(-e.delta / 120), "units")
-    for seq in ("<Button-4>", "<Button-5>", "<MouseWheel>"):
-        scrollable.bind(seq, _wheel, add="+")
-        scrollable._parent_canvas.bind(seq, _wheel, add="+")
-        scrollable._scrollbar.bind(seq, _wheel, add="+")
+
 
 
 class DisconnectDialog(ctk.CTkToplevel):
     def __init__(self, master, device_info, on_confirm=None):
         super().__init__(master)
         self.title("Disconnect Device")
-        self.geometry("420x320")
+        self.geometry("480x520")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
         self.result = None
@@ -65,17 +55,49 @@ class DisconnectDialog(ctk.CTkToplevel):
         for dur_name in DISCONNECT_DURATIONS.keys():
             ctk.CTkRadioButton(dur_frame, text=ar(dur_name), variable=self.duration_var, value=dur_name, font=ctk.CTkFont(size=12), text_color=COLORS["text_primary"]).pack(side="left", padx=8)
 
+        # خيارات الهجوم المتقدمة
+        ctk.CTkLabel(self, text=ar("نوع الهجوم (استراتيجية القطع):"), font=ctk.CTkFont(size=14, weight="bold"), text_color=COLORS["text_primary"]).pack(pady=(15,5))
+        
+        self.attack_type_var = ctk.StringVar(value="arp")
+        type_frame = ctk.CTkFrame(self, fg_color="transparent")
+        type_frame.pack(pady=5, fill="x", padx=20)
+        
+        ctk.CTkRadioButton(type_frame, text=ar("1. القطع العادي (ARP) - للشبكات المنزلية العادية"), variable=self.attack_type_var, value="arp", command=self._toggle_iface_menu).pack(anchor="w", pady=6)
+        ctk.CTkRadioButton(type_frame, text=ar("2. طرد من الشبكة (Deauth) - للشبكات المفتوحة والكروت"), variable=self.attack_type_var, value="deauth", command=self._toggle_iface_menu).pack(anchor="w", pady=6)
+        ctk.CTkRadioButton(type_frame, text=ar("3. حجب النظام (Iptables) - إذا كنت أنت موزع الإنترنت"), variable=self.attack_type_var, value="iptables", command=self._toggle_iface_menu).pack(anchor="w", pady=6)
+
+        # قائمة كروت الواي فاي (مخفية افتراضياً)
+        self.iface_frame = ctk.CTkFrame(self, fg_color="transparent")
+        ctk.CTkLabel(self.iface_frame, text=ar("كارت الواي فاي للهجوم:"), font=ctk.CTkFont(size=12), text_color=COLORS["text_secondary"]).pack(side="left", padx=5)
+        
+        interfaces = get_wireless_interfaces()
+        if not interfaces:
+            interfaces = ["wlan0"]
+            
+        self.iface_var = ctk.StringVar(value=interfaces[0])
+        self.iface_menu = ctk.CTkOptionMenu(self.iface_frame, variable=self.iface_var, values=interfaces)
+        self.iface_menu.pack(side="left", padx=5)
+
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.pack(pady=15)
+        btn_frame.pack(pady=20)
         ctk.CTkButton(btn_frame, text=ar("إلغاء"), width=120, fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"], command=self.destroy).pack(side="left", padx=10)
         ctk.CTkButton(btn_frame, text=ar("✂️ قطع الاتصال"), width=120, fg_color=COLORS["accent_red"], hover_color=COLORS["hover_red"], command=self._confirm).pack(side="left", padx=10)
 
         self.after(100, lambda: (_center(self), _safe_grab(self)))
 
+    def _toggle_iface_menu(self):
+        if self.attack_type_var.get() == "deauth":
+            self.iface_frame.pack(pady=10)
+        else:
+            self.iface_frame.pack_forget()
+
     def _confirm(self):
         dur = DISCONNECT_DURATIONS.get(self.duration_var.get(), 300)
+        attack_type = self.attack_type_var.get()
+        iface = self.iface_var.get() if attack_type == "deauth" else None
+        
         if self.on_confirm:
-            self.on_confirm(dur)
+            self.on_confirm(dur, attack_type, iface)
         self.destroy()
 
 

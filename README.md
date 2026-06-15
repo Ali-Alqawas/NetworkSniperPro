@@ -1,129 +1,69 @@
 <div align="center">
+  <img src="assets/icons/app_icon.png" alt="Logo" width="120" height="120">
+  <h1>🎯 Network Sniper Pro</h1>
+  <p><strong>Advanced Network Management & Security Auditing Tool</strong></p>
+  <p><i>Developed with ❤️ by <b>Ali-Alqawas</b></i></p>
 
-# 🔫 Network Sniper Pro
-
-**أداة احترافية لمراقبة وإدارة الشبكات المحلية**
-
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)
-![Platform](https://img.shields.io/badge/Platform-Linux-orange?logo=linux)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Version](https://img.shields.io/badge/Version-2.0-purple)
-
-*by [Ali-Alqawas](https://github.com/Ali-Alqawas)*
-
+  [![Python](https://img.shields.io/badge/Python-3.8%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
+  [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
+  
+  [**عربي**](README-ar.md) | [**English**](README.md)
 </div>
 
 ---
 
-## 📌 نبذة عن البرنامج
+## 📌 Overview
 
-**Network Sniper Pro** أداة سطح مكتب مبنية بـ Python تمنحك رؤية كاملة وتحكماً تاماً في الأجهزة المتصلة بشبكتك المحلية. تجمع بين فحص الشبكة السريع، ومراقبة الأجهزة الحية، وإدارة الاتصالات، وتحسين أداء الألعاب — كل ذلك في واجهة رسومية أنيقة بالكامل باللغة العربية.
+**Network Sniper Pro** is a cutting-edge, cross-platform graphical tool designed for deep network monitoring, intelligent bandwidth management, and advanced security auditing. Built on top of robust frameworks like `scapy` and `iptables`, it provides network administrators and security researchers with unparalleled control over local networks.
 
----
+## 🚀 Features
 
-## ✨ المميزات الرئيسية
+* **Advanced Device Discovery:** Utilizes `Nmap` for deep OS fingerprinting, vendor identification, and real-time device tracking.
+* **Smart Disconnection Engine:** Employs three distinct strategies to isolate devices:
+  * **ARP Spoofing:** Standard local network disruption.
+  * **Deauth Attacks (IEEE 802.11):** Forceful kick for open or isolated (AP Isolation) wireless networks.
+  * **Iptables Blocking:** Kernel-level packet dropping (ideal when acting as a Hotspot/Gateway).
+* **Persistent Blacklist:** Automatically re-applies disconnection policies to devices even if they disconnect, change IP, and reconnect.
+* **Smart Game Mode (Bandwidth Limiter):** Prioritize your bandwidth and restrict network traffic for other users to ensure ultra-low latency during gaming sessions.
+* **Port Scanner:** Comprehensive TCP/UDP port scanning to identify open vulnerabilities on connected devices.
+* **VIP Whitelist:** Protect specific devices (like your own PC or Smart TV) from accidental disconnection or Game Mode restrictions.
+* **Live Analytics Dashboard:** Real-time visual metrics tracking active devices, disconnected targets, and protected VIPs.
+* **Smart Filtering:** Instant search by IP, MAC, hostname, or Vendor.
+* **Dynamic Theming:** Built-in sleek Dark/Light modes with customizable accent colors using `customtkinter`.
 
-| الميزة | الوصف |
-|--------|-------|
-| 📡 **رادار الشبكة** | فحص متوازٍ بـ 50 thread يكتشف جميع الأجهزة خلال ثوانٍ |
-| 👁️ **المراقبة الحية** | تنبيه فوري عند اتصال أو انقطاع أي جهاز |
-| ✂️ **قطع الاتصال** | ARP Spoofing لقطع أي جهاز مع تحديد المدة (5 دقائق / ساعة / دائم) |
-| 🎮 **وضع الألعاب** | إعطاء أولوية كاملة لجهازك وتحديد باقي الأجهزة بـ 512kbit |
-| 🔍 **فحص المنافذ** | كشف المنافذ المفتوحة مع تصنيف مستوى الخطر |
-| ⚡ **اختبار السرعة** | قياس سرعة التحميل والرفع والـ Ping |
-| 📊 **التصدير** | تصدير التقارير بصيغة CSV أو PDF |
+## 🛠️ Tech Stack
+* **UI/UX:** `customtkinter` (Modern, hardware-accelerated GUI).
+* **Networking Core:** `scapy` (Packet crafting), `Nmap` (Scanning), `iw` & `iptables` (Linux kernel networking).
+* **Data Persistence:** SQLite3 (Device History & Analytics) & JSON (Settings).
 
----
+## 📦 Installation
 
-## 🖥️ متطلبات التشغيل
-
-- **نظام التشغيل:** Linux (Ubuntu / Debian / Kali)
-- **Python:** 3.10 أو أحدث
-- **أدوات النظام:** `nmap`, `iproute2`, `tc` (traffic control)
-- **صلاحيات:** يُنصح بالتشغيل كـ `root` لكامل الوظائف
-
----
-
-## 🚀 التثبيت والتشغيل
+**Requirements:**
+Linux-based OS (Debian/Ubuntu/Kali recommended) with Python 3.8+
 
 ```bash
-# 1. تثبيت nmap
-sudo apt install nmap
+# 1. Clone the repository
+git clone https://github.com/YourUsername/NetworkSniperPro.git
+cd NetworkSniperPro
 
-# 2. تثبيت المكتبات
-pip install -r requirements.txt
+# 2. Install system dependencies
+sudo apt-get update
+sudo apt-get install nmap aircrack-ng iptables
 
-# 3. التشغيل (بصلاحيات root للوظائف الكاملة)
+# 3. Install Python requirements
+pip3 install -r requirements.txt
+
+# 4. Run the application (Root privileges required for advanced network manipulation)
 sudo python3 main.py
 ```
 
-أو استخدم سكريبت التشغيل المرفق:
+## ⚠️ Disclaimer
+This tool is intended for **educational purposes and authorized network auditing only**. The developer (`Ali-Alqawas`) assumes no liability and is not responsible for any misuse or damage caused by this program. Only use it on networks you own or have explicit permission to manage.
 
-```bash
-chmod +x launch.sh
-./launch.sh
-```
-
----
-
-## 📦 المكتبات المستخدمة
-
-```
-customtkinter   — واجهة رسومية حديثة
-scapy           — ARP Spoofing وتحليل الحزم
-arabic-reshaper — دعم النصوص العربية
-python-bidi     — اتجاه النص العربي
-speedtest-cli   — اختبار سرعة الإنترنت
-fpdf2           — توليد تقارير PDF
-Pillow          — معالجة الصور
-```
+## 🤝 Contributing
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/YourUsername/NetworkSniperPro/issues).
 
 ---
-
-## 🗂️ هيكل المشروع
-
-```
-NetworkSniperPro/
-├── main.py              # نقطة الدخول
-├── config.py            # الإعدادات المركزية
-├── requirements.txt
-├── launch.sh
-├── core/
-│   ├── scanner.py       # محرك فحص الشبكة
-│   ├── disconnector.py  # قطع الاتصال (ARP Spoofing)
-│   ├── monitor.py       # المراقبة الحية
-│   ├── port_scanner.py  # فحص المنافذ
-│   ├── game_mode.py     # وضع الألعاب (tc/HTB)
-│   └── speed_test.py    # اختبار السرعة
-├── ui/
-│   ├── app.py           # النافذة الرئيسية
-│   ├── sidebar.py       # الشريط الجانبي
-│   ├── device_card.py   # بطاقة الجهاز
-│   ├── dialogs.py       # نوافذ الحوار
-│   └── themes.py        # الثيم والألوان
-├── utils/
-│   ├── network.py       # أدوات الشبكة
-│   ├── exporter.py      # التصدير CSV/PDF
-│   ├── logger.py        # نظام التسجيل
-│   └── arabic.py        # معالجة النصوص العربية
-└── assets/
-    └── icons/
-```
-
----
-
-## ⚠️ تنبيه قانوني
-
-هذه الأداة مخصصة **للاستخدام على شبكتك الخاصة فقط**. استخدامها على شبكات الغير دون إذن مخالف للقانون. المطور غير مسؤول عن أي استخدام غير مشروع.
-
----
-
-## 👤 المطور
-
-**Ali-Alqawas** — مهندس شبكات وأمن معلومات
-
----
-
 <div align="center">
-صُنع بـ ❤️ للمجتمع العربي التقني
+  <sub>Built by <b>Ali-Alqawas</b> • 2026</sub>
 </div>

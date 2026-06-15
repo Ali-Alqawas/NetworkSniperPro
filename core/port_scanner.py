@@ -34,7 +34,7 @@ class PortScanner:
                  "--host-timeout", "30s", target_ip],
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
             )
-            output, _ = self.process.communicate()
+            output, _ = self.process.communicate(timeout=90)
 
             if not self.is_scanning:
                 return

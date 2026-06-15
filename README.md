@@ -125,5 +125,5 @@ NetworkSniperPro/
 ---
 
 <div align="center">
-صُنع بـ ❤️ للمجتمع العربي التقني
+Q-S
 </div>

@@ -2,7 +2,7 @@
   <img src="assets/icons/app_icon.png" alt="Logo" width="120" height="120">
   <h1>🎯 Network Sniper Pro</h1>
   <p><strong>Advanced Network Management & Security Auditing Tool</strong></p>
-  <p><i>Developed with ❤️ by <b>Ali-Alqawas</b></i></p>
+  <p><i>Developed by <b>Ali-Alqawas</b></i></p>
 
   [![Python](https://img.shields.io/badge/Python-3.8%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
   [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)

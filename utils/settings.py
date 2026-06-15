@@ -40,7 +40,7 @@ def get(key: str, default=None):
     return load().get(key, default)
 
 
-def set(key: str, value):
+def set_value(key: str, value):
     s = load()
     s[key] = value
     save(s)

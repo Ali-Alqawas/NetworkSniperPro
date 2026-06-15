@@ -10,7 +10,7 @@ from config import COLORS, DEVICE_TYPE_ICONS, DEFAULT_DEVICE_ICON
 class DeviceCard(ctk.CTkFrame):
     def __init__(self, master, device_info, on_disconnect=None, on_reconnect=None,
                  on_port_scan=None, on_copy_mac=None, is_disconnected=False,
-                 on_rename=None, **kwargs):
+                 on_rename=None, is_vip=False, on_toggle_vip=None, **kwargs):
         super().__init__(
             master,
             fg_color=COLORS["bg_card"],
@@ -25,7 +25,9 @@ class DeviceCard(ctk.CTkFrame):
         self.on_port_scan  = on_port_scan
         self.on_copy_mac   = on_copy_mac
         self.on_rename     = on_rename
+        self.on_toggle_vip = on_toggle_vip
         self._is_disconnected = is_disconnected
+        self._is_vip = is_vip
         self._build_ui()
         self.bind("<Enter>", lambda e: self.configure(fg_color=COLORS["bg_card_hover"]))
         self.bind("<Leave>", lambda e: self.configure(fg_color=COLORS["bg_card"]))
@@ -63,7 +65,9 @@ class DeviceCard(ctk.CTkFrame):
                      text_color=COLORS["text_primary"]).pack(side="left", padx=(0, 10))
 
         # شارة الحالة
-        if self._is_disconnected:
+        if self._is_vip:
+            badge_text, badge_color = ar("VIP ⭐"), COLORS["accent_gold"]
+        elif self._is_disconnected:
             badge_text, badge_color = ar("مقطوع"), COLORS["accent_red"]
         elif is_local:
             badge_text, badge_color = ar("جهازك ●"), COLORS["accent_green"]
@@ -73,7 +77,7 @@ class DeviceCard(ctk.CTkFrame):
             badge_text, badge_color = ar("متصل ●"), COLORS["accent_green"]
 
         ctk.CTkLabel(row1, text=badge_text,
-                     font=ctk.CTkFont(size=10),
+                     font=ctk.CTkFont(size=10, weight="bold" if self._is_vip else "normal"),
                      text_color=badge_color,
                      fg_color=COLORS["bg_input"],
                      corner_radius=6, padx=8, pady=2).pack(side="left")
@@ -131,10 +135,17 @@ class DeviceCard(ctk.CTkFrame):
                 command=lambda: self.on_reconnect(self.device_info)
             ).pack(pady=(0, 4))
         elif self.on_disconnect:
+            # تعطيل زر القطع للأجهزة VIP
+            state = "disabled" if self._is_vip else "normal"
+            btn_color = COLORS["bg_input"] if self._is_vip else COLORS["accent_red"]
+            txt_color = COLORS["text_muted"] if self._is_vip else COLORS["text_primary"]
+            
             ctk.CTkButton(
                 btns, text=ar("✂️ قطع الاتصال"), width=118, height=28,
                 font=ctk.CTkFont(size=11),
-                fg_color=COLORS["accent_red"], hover_color=COLORS["hover_red"],
+                fg_color=btn_color, hover_color=COLORS["hover_red"],
+                text_color=txt_color,
+                state=state,
                 corner_radius=8,
                 command=lambda: self.on_disconnect(self.device_info)
             ).pack(pady=(0, 4))
@@ -148,15 +159,30 @@ class DeviceCard(ctk.CTkFrame):
                 command=lambda: self.on_copy_mac(mac)
             ).pack(pady=(0, 4))
 
+        # أزرار الإدارة السفلية
+        bottom_btns = ctk.CTkFrame(btns, fg_color="transparent")
+        bottom_btns.pack()
+        
+        if self.on_toggle_vip and mac and "N/A" not in mac:
+            vip_text = "❌ إزالة VIP" if self._is_vip else "⭐ جعل كـ VIP"
+            vip_color = COLORS["accent_orange"] if self._is_vip else COLORS["accent_gold"]
+            ctk.CTkButton(
+                bottom_btns, text=vip_text, width=55, height=26,
+                font=ctk.CTkFont(size=10),
+                fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"],
+                text_color=vip_color, corner_radius=8,
+                command=lambda: self.on_toggle_vip(self.device_info)
+            ).pack(side="left", padx=(0,4))
+
         # زر تسمية الجهاز — يظهر دائماً للأجهزة الأخرى
         if mac and "N/A" not in mac:
             ctk.CTkButton(
-                btns, text=ar("✏️ تسمية"), width=118, height=26,
+                bottom_btns, text=ar("✏️ تسمية"), width=55, height=26,
                 font=ctk.CTkFont(size=10),
                 fg_color=COLORS["bg_input"], hover_color=COLORS["bg_card_hover"],
                 text_color=COLORS["accent_cyan"], corner_radius=8,
                 command=self._open_rename_dialog
-            ).pack()
+            ).pack(side="left")
 
     def _open_rename_dialog(self):
         mac      = self.device_info.get("mac", "")

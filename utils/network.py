@@ -79,8 +79,15 @@ def get_gateway_ip():
     except Exception:
         pass
     # افتراضي
-    network = get_local_network()
-    return network.replace("0/24", "1")
+    try:
+        import ipaddress
+        network = get_local_network()
+        net = ipaddress.IPv4Network(network, strict=False)
+        return str(net.network_address + 1)
+    except Exception:
+        local_ip = get_local_ip()
+        parts = local_ip.split('.')
+        return f"{parts[0]}.{parts[1]}.{parts[2]}.1"
 
 
 def get_default_interface():
@@ -152,7 +159,65 @@ def measure_interface_speed(duration=1.5):
     return max(dl_mbps, 0.0), max(ul_mbps, 0.0)
 
 
+def get_bssid(iface=None):
+    """جلب عنوان الـ MAC للراوتر (BSSID) للشبكة الحالية"""
+    if not iface:
+        iface = get_default_interface()
+    try:
+        result = subprocess.check_output(["iw", "dev", iface, "link"], text=True)
+        match = re.search(r"Connected to ([0-9A-Fa-f:]{17})", result)
+        if match:
+            return match.group(1).upper()
+    except Exception:
+        pass
+    
+    # محاولة ثانية عبر arp
+    gateway_ip = get_gateway_ip()
+    try:
+        result = subprocess.check_output(["ip", "neigh", "show", gateway_ip], text=True)
+        match = re.search(r"lladdr ([0-9A-Fa-f:]{17})", result)
+        if match:
+            return match.group(1).upper()
+    except Exception:
+        pass
+    return None
 
+def get_wireless_interfaces():
+    """الحصول على قائمة بكروت الواي فاي المتاحة"""
+    interfaces = []
+    try:
+        result = subprocess.check_output(["iw", "dev"], text=True)
+        for line in result.split("\n"):
+            match = re.search(r"Interface (\S+)", line)
+            if match:
+                interfaces.append(match.group(1))
+    except Exception:
+        pass
+    return interfaces
+
+def enable_monitor_mode(iface):
+    """تفعيل وضع المراقبة لكارت واي فاي محدد"""
+    try:
+        subprocess.check_call(["ip", "link", "set", iface, "down"])
+        subprocess.check_call(["iw", "dev", iface, "set", "type", "monitor"])
+        subprocess.check_call(["ip", "link", "set", iface, "up"])
+        return True
+    except Exception as e:
+        log.error(f"فشل تفعيل وضع المراقبة على {iface}: {e}")
+        return False
+
+def disable_monitor_mode(iface):
+    """إلغاء وضع المراقبة لكارت واي فاي محدد"""
+    try:
+        subprocess.check_call(["ip", "link", "set", iface, "down"])
+        subprocess.check_call(["iw", "dev", iface, "set", "type", "managed"])
+        subprocess.check_call(["ip", "link", "set", iface, "up"])
+        return True
+    except Exception as e:
+        log.error(f"فشل إرجاع {iface} للوضع العادي: {e}")
+        return False
+
+def validate_mac(mac):
     """التحقق من صحة عنوان MAC"""
     pattern = r'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$'
     return bool(re.match(pattern, mac))

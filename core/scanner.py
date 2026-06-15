@@ -97,6 +97,11 @@ class NetworkScanner:
             if not self.is_scanning:
                 return
 
+            if self.process.returncode and self.process.returncode != 0:
+                if on_error:
+                    on_error(f"فشل Nmap برمز خطأ {self.process.returncode}")
+                return
+
             if on_progress:
                 on_progress("جاري تحليل النتائج...")
 

